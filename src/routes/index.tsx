@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
-import { type Evaluation } from "@/lib/mock-data";
+import { isDueWithinOneWeek, type Evaluation } from "@/lib/mock-data";
 import { useDemoEvaluations } from "@/lib/demo-store";
-import { AlertCircle, ArrowRight, Copy, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowRight, CalendarClock, Copy, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,14 +34,14 @@ function DashboardPage() {
       e.status === "Waiting on parent" ||
       e.status === "Waiting on teacher",
   ).length;
-  const assessmentInfo = evaluations.filter((e) => e.status === "Assessment info needed").length;
+  const dueSoon = evaluations.filter((e) => isDueWithinOneWeek(e)).length;
   const ready = evaluations.filter((e) => e.status === "Ready to generate").length;
   const inReview = evaluations.filter((e) => e.status === "Draft in review").length;
 
   const stats = [
     { label: "Active evaluations", value: active, tone: "text-foreground" },
     { label: "Missing information", value: missingInfo, tone: "text-rose-700" },
-    { label: "Assessment info needed", value: assessmentInfo, tone: "text-amber-700" },
+    { label: "Due within one week", value: dueSoon, tone: "text-amber-700" },
     { label: "Ready to generate", value: ready, tone: "text-emerald-700" },
     { label: "Drafts in review", value: inReview, tone: "text-indigo-700" },
   ];
@@ -160,30 +160,33 @@ function DashboardPage() {
   );
 }
 
-function copyIntakeLink(kind: "parent" | "teacher") {
-  const path = kind === "parent" ? "/parent-intake/demo" : "/teacher-intake/demo";
+function copyIntakeLink(kind: "parent" | "teacher", evalId: string) {
+  const path =
+    kind === "parent" ? `/parent-intake/${evalId}` : `/teacher-intake/${evalId}`;
   const url =
     typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
   if (typeof navigator !== "undefined" && navigator.clipboard) {
     void navigator.clipboard.writeText(url).catch(() => {});
   }
-  toast.success(`Demo ${kind} link copied`, { description: url });
+  toast.success(`${kind === "parent" ? "Parent" : "Teacher"} link copied`, {
+    description: url,
+  });
 }
 
-function IntakeRowAction({ kind }: { kind: "parent" | "teacher" }) {
+function IntakeRowAction({ kind, evalId }: { kind: "parent" | "teacher"; evalId: string }) {
   const to = kind === "parent" ? "/parent-intake/$token" : "/teacher-intake/$token";
   return (
     <div className="inline-flex items-center gap-1.5">
       <button
         type="button"
-        onClick={() => copyIntakeLink(kind)}
+        onClick={() => copyIntakeLink(kind, evalId)}
         className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
       >
         <Copy className="h-3.5 w-3.5" /> Copy {kind} link
       </button>
       <Link
         to={to}
-        params={{ token: "demo" }}
+        params={{ token: evalId }}
         target="_blank"
         className="text-xs font-medium text-primary hover:underline"
       >
@@ -194,40 +197,48 @@ function IntakeRowAction({ kind }: { kind: "parent" | "teacher" }) {
 }
 
 function RowAction({ ev }: { ev: Evaluation }) {
+  const parentMissing = ev.missingItems.includes("Parent questionnaire");
+  const teacherMissing = ev.missingItems.includes("Teacher questionnaire");
+  const assessmentsMissing =
+    ev.missingItems.includes("Assessment scores") ||
+    ev.missingItems.includes("SLP observations");
   switch (ev.status) {
     case "Missing information":
       return (
         <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
-          <button
-            type="button"
-            onClick={() => copyIntakeLink("parent")}
-            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
-          >
-            <Copy className="h-3.5 w-3.5" /> Parent
-          </button>
-          <button
-            type="button"
-            onClick={() => copyIntakeLink("teacher")}
-            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
-          >
-            <Copy className="h-3.5 w-3.5" /> Teacher
-          </button>
+          {parentMissing && (
+            <button
+              type="button"
+              onClick={() => copyIntakeLink("parent", ev.id)}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
+            >
+              <Copy className="h-3.5 w-3.5" /> Parent
+            </button>
+          )}
+          {teacherMissing && (
+            <button
+              type="button"
+              onClick={() => copyIntakeLink("teacher", ev.id)}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
+            >
+              <Copy className="h-3.5 w-3.5" /> Teacher
+            </button>
+          )}
+          {assessmentsMissing && !parentMissing && !teacherMissing && (
+            <Link
+              to="/evaluations/$id"
+              params={{ id: ev.id }}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+            >
+              <CalendarClock className="h-3.5 w-3.5" /> Add assessments
+            </Link>
+          )}
         </div>
       );
     case "Waiting on parent":
-      return <IntakeRowAction kind="parent" />;
+      return <IntakeRowAction kind="parent" evalId={ev.id} />;
     case "Waiting on teacher":
-      return <IntakeRowAction kind="teacher" />;
-    case "Assessment info needed":
-      return (
-        <Link
-          to="/evaluations/$id"
-          params={{ id: ev.id }}
-          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
-        >
-          Add assessments
-        </Link>
-      );
+      return <IntakeRowAction kind="teacher" evalId={ev.id} />;
     case "Ready to generate":
       return (
         <Link
