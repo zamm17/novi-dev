@@ -36,29 +36,30 @@ function setNativeChecked(el: HTMLInputElement, checked: boolean) {
 
 function applyOnce(form: HTMLFormElement, values: AutofillValues): number {
   let count = 0;
-  const elements = Array.from(form.elements) as Array<
-    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-  >;
-  for (const el of elements) {
-    const name = el.name;
-    if (!name || !(name in values)) continue;
-    const val = values[name];
-
-    if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) {
-      const arr = Array.isArray(val) ? val : [val];
-      const shouldCheck = arr.includes(el.value);
-      if (el.checked !== shouldCheck) {
-        setNativeChecked(el, shouldCheck);
+  for (const [name, val] of Object.entries(values)) {
+    const nodes = form.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >(`[name="${CSS.escape(name)}"]`);
+    if (nodes.length === 0) continue;
+    nodes.forEach((el) => {
+      if (
+        el instanceof HTMLInputElement &&
+        (el.type === "checkbox" || el.type === "radio")
+      ) {
+        const arr = Array.isArray(val) ? val : [val];
+        const shouldCheck = arr.includes(el.value);
+        if (el.checked !== shouldCheck) {
+          setNativeChecked(el, shouldCheck);
+          count++;
+        }
+        return;
+      }
+      const str = Array.isArray(val) ? val.join(", ") : val;
+      if (el.value !== str) {
+        setNativeValue(el, str);
         count++;
       }
-      continue;
-    }
-
-    const str = Array.isArray(val) ? val.join(", ") : val;
-    if (el.value !== str) {
-      setNativeValue(el, str);
-      count++;
-    }
+    });
   }
   return count;
 }
