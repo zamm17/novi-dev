@@ -88,8 +88,9 @@ function ParentIntakePage() {
           </div>
         </div>
         <p className="mt-4 rounded-md bg-muted/60 p-3 text-sm text-foreground/90">
-          Your responses help the school speech-language pathologist understand your child's
-          communication history. This prototype uses fictional data — no responses are stored.
+          In this demo, submitting this form updates the SLP workspace in this browser session —
+          nothing is sent anywhere. In the real product, responses would be securely shared with
+          your child's school SLP. Please use fictional information only.
         </p>
       </div>
 
