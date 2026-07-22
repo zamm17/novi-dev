@@ -1073,6 +1073,61 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
 }
 
 function buildDraft(ev: Evaluation): DraftSections {
+  return _buildDraft(ev);
+}
+
+function ResetDemoButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        resetDemoData();
+        toast.success("Demo data reset");
+      }}
+      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-input bg-background px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+    >
+      <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
+    </button>
+  );
+}
+
+function SessionResponses({ sub }: { sub: Submission }) {
+  const sections = groupSubmissionBySection(sub);
+  if (sections.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Submitted, but no free-text answers were provided.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+        Submitted in this demo session. Values below reflect what was entered on the shared
+        questionnaire link.
+      </div>
+      {sections.map((s) => (
+        <div key={s.title} className="rounded-md border border-border bg-background/40 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {s.title}
+          </div>
+          <dl className="mt-2 space-y-2">
+            {s.fields.map((f) => (
+              <div key={f.label} className="text-sm">
+                <dt className="text-xs font-medium text-muted-foreground">{f.label}</dt>
+                <dd className="mt-0.5 whitespace-pre-wrap text-foreground/90">
+                  {f.values.join(", ")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function _buildDraft(ev: Evaluation): DraftSections {
   return (
     ev.draft ?? {
       background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
