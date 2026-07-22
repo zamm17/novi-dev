@@ -1,14 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { ClipboardList, Users, FileInput, FileText, Settings, Search, Waves } from "lucide-react";
 import type { ReactNode } from "react";
 
 const nav = [
-  { to: "/", label: "Evaluations", icon: ClipboardList },
-  { to: "/students", label: "Students", icon: Users },
-  { to: "/intake-forms", label: "Intake Forms", icon: FileInput },
-  { to: "/drafts", label: "Drafts", icon: FileText },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
+  { to: "/", label: "Evaluations", icon: ClipboardList, real: true },
+  { to: "/students", label: "Students", icon: Users, real: false },
+  { to: "/intake-forms", label: "Intake Forms", icon: FileInput, real: false },
+  { to: "/drafts", label: "Drafts", icon: FileText, real: false },
+  { to: "/settings", label: "Settings", icon: Settings, real: false },
+] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -52,21 +53,31 @@ export function AppShell({ children }: { children: ReactNode }) {
               const active =
                 item.to === "/"
                   ? pathname === "/" || pathname.startsWith("/evaluations")
-                  : pathname.startsWith(item.to);
+                  : false;
               const Icon = item.icon;
+              const cls = `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-left transition-colors ${
+                active
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60"
+              }`;
+              if (item.real) {
+                return (
+                  <Link key={item.to} to={item.to} className={cls}>
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              }
               return (
-                <Link
+                <button
                   key={item.to}
-                  to={item.to}
-                  className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60"
-                  }`}
+                  type="button"
+                  onClick={() => toast(`${item.label} — coming soon in this prototype.`)}
+                  className={cls}
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
-                </Link>
+                </button>
               );
             })}
           </nav>
