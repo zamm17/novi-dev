@@ -33,13 +33,20 @@ export function getDraftEndpointUrl(): string {
 }
 
 const REQUIRED_KEYS: (keyof DraftSections)[] = [
-  "background",
+  "evaluationInformation",
   "reasonForReferral",
+  "sourcesOfData",
+  "backgroundAndHistory",
   "parentInputSummary",
   "teacherInputSummary",
+  "behavioralObservations",
+  "testingConditionsAndValidity",
   "assessmentResults",
+  "speechSoundProfile",
   "presentLevels",
+  "educationalImpact",
   "interpretation",
+  "eligibilityConsiderations",
   "recommendations",
   "summary",
 ];
