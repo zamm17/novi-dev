@@ -54,7 +54,7 @@ function TeacherIntakePage() {
             Thanks — your responses were saved for this demo.
           </h2>
           <p className="mt-2 text-sm text-emerald-800">
-            In this demo, {student.name}'s SLP workspace has been updated in this browser
+            In this demo, {student.name}'s SLP workspace has been updated in this browser.
             session. In the real product, your classroom examples would be securely shared
             with {student.slp}.
           </p>
@@ -357,7 +357,7 @@ function TeacherIntakePage() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">
-            In this demo, submitting updates the SLP workspace in this browser session. In the
+            In this demo, submitting updates the SLP workspace in this browser. In the
             real product, responses would be securely shared with the SLP.
           </p>
           <button

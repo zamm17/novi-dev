@@ -623,7 +623,7 @@ function OverviewTab({
             </div>
             <p className="mt-2 text-muted-foreground">
               {sessionParent
-                ? "Submitted in this demo session. Available in the Parent Input tab."
+                ? "Submitted in this browser. Available in the Parent Input tab."
                 : "Parent questionnaire is complete and available in the Parent Input tab."}
             </p>
           </div>
@@ -668,7 +668,7 @@ function OverviewTab({
             </div>
             <p className="mt-2 text-muted-foreground">
               {sessionTeacher
-                ? "Submitted in this demo session. Available in the Teacher Input tab."
+                ? "Submitted in this browser. Available in the Teacher Input tab."
                 : "Teacher questionnaire is complete and available in the Teacher Input tab."}
             </p>
           </div>
@@ -881,7 +881,7 @@ function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission 
       right={
         <span className="text-xs text-muted-foreground">
           {sessionSub
-            ? `Submitted in this demo session · ${ev.parent.submittedDate}`
+            ? `Submitted in this browser · ${ev.parent.submittedDate}`
             : ev.parent.submitted
               ? `Submitted ${ev.parent.submittedDate}`
               : "Pending"}
@@ -924,7 +924,7 @@ function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission
       right={
         <span className="text-xs text-muted-foreground">
           {sessionSub
-            ? `Submitted in this demo session · ${ev.teacher.submittedDate}`
+            ? `Submitted in this browser · ${ev.teacher.submittedDate}`
             : ev.teacher.submitted
               ? `Submitted ${ev.teacher.submittedDate}`
               : "Pending"}
@@ -1123,7 +1123,7 @@ function SessionResponses({ sub }: { sub: Submission }) {
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
-        Submitted in this demo session. Values below reflect what was entered on the shared
+        Submitted in this browser. Values below reflect what was entered on the shared
         questionnaire link.
       </div>
       {sections.map((s) => (
