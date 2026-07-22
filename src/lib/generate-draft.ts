@@ -42,34 +42,40 @@ function isDraftSections(v: unknown): v is DraftSections {
 export async function generateEvaluationDraft(
   payload: EvaluationDraftPayload,
 ): Promise<GenerateDraftResult> {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const supabaseKey =
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
   const fallback = (error?: string): GenerateDraftResult => ({
     draft: buildDraftFromPayload(payload),
     source: "local-fallback",
     error,
   });
 
-  if (!url || !anonKey) {
-    return { draft: buildDraftFromPayload(payload), source: "local-fallback" };
+  if (!supabaseUrl || !supabaseKey) {
+    return fallback(
+      "Missing Supabase config: VITE_SUPABASE_URL or Supabase public key was not available in the browser build.",
+    );
   }
 
   try {
     const res = await fetch(
-      `${url}/functions/v1/generate-evaluation-draft`,
+      `${supabaseUrl}/functions/v1/generate-evaluation-draft`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${anonKey}`,
-          apikey: anonKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
         },
         body: JSON.stringify(payload),
       },
     );
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return fallback(`Edge function ${res.status}: ${text.slice(0, 160)}`);
+      return fallback(
+        `Edge function returned ${res.status} ${res.statusText}: ${text.slice(0, 200)}`,
+      );
     }
     const data = (await res.json()) as unknown;
     if (!isDraftSections(data)) {
@@ -77,6 +83,16 @@ export async function generateEvaluationDraft(
     }
     return { draft: data, source: "edge-function" };
   } catch (e) {
-    return fallback(e instanceof Error ? e.message : "Network error");
+    return fallback(
+      `Network error calling edge function: ${e instanceof Error ? e.message : String(e)}`,
+    );
   }
+}
+
+export function hasSupabaseDraftConfig(): boolean {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const key =
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
+  return Boolean(url && key);
 }

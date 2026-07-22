@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
+import { hasSupabaseDraftConfig } from "@/lib/generate-draft";
 import {
   getEvaluation,
   getChecklist,
@@ -153,12 +154,12 @@ function WorkspacePage() {
       setTab("AI Draft");
       if (result.source === "edge-function") {
         toast.success("Draft generated for SLP review");
-      } else if (result.error) {
-        toast.message("Using local demo draft", {
-          description: "AI service unavailable — showing deterministic fallback for review.",
-        });
       } else {
-        toast.success("Draft generated for SLP review");
+        toast.message("Using local demo draft", {
+          description:
+            result.error ??
+            "AI service unavailable — showing deterministic fallback for review.",
+        });
       }
     })();
   };
@@ -1323,6 +1324,12 @@ function DraftTab({
             )}{" "}
             {generating ? "Generating…" : "Generate draft"}
           </button>
+          <p className="mt-3 text-[11px] text-emerald-900/60">
+            {hasSupabaseDraftConfig()
+              ? "AI connection: Supabase config detected"
+              : "AI connection: Supabase config missing"}{" "}
+            · prototype-only
+          </p>
         </div>
       </Card>
     );
