@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
-import { evaluations, type Evaluation } from "@/lib/mock-data";
+import { type Evaluation } from "@/lib/mock-data";
+import { useDemoEvaluations } from "@/lib/demo-store";
 import { AlertCircle, ArrowRight, Copy, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
+  const evaluations = useDemoEvaluations();
   const active = evaluations.length;
   const waitingParent = evaluations.filter((e) => e.status === "Waiting on parent").length;
   const waitingTeacher = evaluations.filter((e) => e.status === "Waiting on teacher").length;
