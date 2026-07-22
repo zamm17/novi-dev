@@ -73,22 +73,50 @@ Clinical guardrails — follow strictly:
 - If information is missing for a section, say so briefly (e.g., "Parent input was not available at the time of this draft.") rather than fabricating.
 - Write a near-complete, editable draft. The SLP will review, revise, and finalize.
 
-Output format — return ONLY a JSON object with these exact string keys:
-background, reasonForReferral, parentInputSummary, teacherInputSummary, assessmentResults, presentLevels, interpretation, recommendations, summary.
-No markdown, no code fences, no commentary outside the JSON.`;
+Output format — return ONLY a single JSON object at the top level with EVERY one of these exact keys present, and each value MUST be a string:
+
+{
+  "background": "string",
+  "reasonForReferral": "string",
+  "parentInputSummary": "string",
+  "teacherInputSummary": "string",
+  "assessmentResults": "string",
+  "presentLevels": "string",
+  "interpretation": "string",
+  "recommendations": "string",
+  "summary": "string"
+}
+
+Do NOT wrap the object in a "draft", "sections", "data", or any other parent key. Do NOT nest these keys under another object. Do NOT return arrays. No markdown, no code fences, no commentary outside the JSON. Every one of the nine keys above must be present at the top level.`;
 
 function buildUserPrompt(payload: any): string {
   return `Draft the evaluation report sections for the following student. Use only this data.\n\nPAYLOAD:\n${JSON.stringify(payload, null, 2)}`;
 }
 
+const MISSING_PLACEHOLDER =
+  "No information was generated for this section. SLP review required.";
+
 function coerceDraft(raw: unknown): DraftSections | null {
   if (!raw || typeof raw !== "object") return null;
-  const obj = raw as Record<string, unknown>;
+  let obj = raw as Record<string, unknown>;
+  // Tolerate common wrappers the model may add.
+  const hasAnyKey = (o: Record<string, unknown>) =>
+    DRAFT_KEYS.some((k) => typeof o[k] === "string");
+  if (!hasAnyKey(obj)) {
+    if (obj.draft && typeof obj.draft === "object") {
+      obj = obj.draft as Record<string, unknown>;
+    } else if (obj.sections && typeof obj.sections === "object") {
+      obj = obj.sections as Record<string, unknown>;
+    } else if (obj.data && typeof obj.data === "object") {
+      obj = obj.data as Record<string, unknown>;
+    }
+  }
   const out = {} as DraftSections;
   for (const k of DRAFT_KEYS) {
     const v = obj[k];
-    if (typeof v !== "string") return null;
-    out[k] = v;
+    out[k] = typeof v === "string" && v.trim().length > 0
+      ? v
+      : MISSING_PLACEHOLDER;
   }
   return out;
 }
