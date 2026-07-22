@@ -115,8 +115,8 @@ const missingItemMeta: Record<
 
 function WorkspacePage() {
   const { ev: baseEv } = Route.useLoaderData();
-  const parentSub = useParentSubmission();
-  const teacherSub = useTeacherSubmission();
+  const parentSub = useParentSubmission(baseEv.id);
+  const teacherSub = useTeacherSubmission(baseEv.id);
   const resetVersion = useDemoResetVersion();
   const ev = useMemo(
     () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
@@ -493,14 +493,6 @@ function NextActionPanel({
         icon: <Copy className="h-4 w-4" />,
         why: "Teacher input describes classroom impact and functional communication — key context for eligibility discussion.",
         onClick: () => copyLink("teacher"),
-      }];
-      break;
-    case "Assessment info needed":
-      actions = [{
-        label: "Go to assessments",
-        icon: <ArrowRight className="h-4 w-4" />,
-        why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
-        onClick: () => setTab("Assessments & Observations"),
       }];
       break;
     case "Ready to generate":
