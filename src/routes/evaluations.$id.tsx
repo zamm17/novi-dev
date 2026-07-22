@@ -135,12 +135,32 @@ function WorkspacePage() {
   const handleGenerate = () => {
     if (generating) return;
     setGenerating(true);
-    setTimeout(() => {
-      setGeneratedDraft(buildDraft(ev, parentSub, teacherSub));
+    (async () => {
+      // Preserve mock draft behavior for pre-seeded evaluations.
+      if (ev.draft) {
+        await new Promise((r) => setTimeout(r, 800));
+        setGeneratedDraft(ev.draft);
+        setGenerating(false);
+        setTab("AI Draft");
+        toast.success("Draft generated for SLP review");
+        return;
+      }
+      const payload = buildEvaluationDraftPayload(ev, parentSub, teacherSub);
+      const { generateEvaluationDraft } = await import("@/lib/generate-draft");
+      const result = await generateEvaluationDraft(payload);
+      setGeneratedDraft(result.draft);
       setGenerating(false);
       setTab("AI Draft");
-      toast.success("Draft generated for SLP review");
-    }, 1000);
+      if (result.source === "edge-function") {
+        toast.success("Draft generated for SLP review");
+      } else if (result.error) {
+        toast.message("Using local demo draft", {
+          description: "AI service unavailable — showing deterministic fallback for review.",
+        });
+      } else {
+        toast.success("Draft generated for SLP review");
+      }
+    })();
   };
 
   return (
