@@ -36,8 +36,13 @@ import {
   resetDemoData,
   useParentSubmission,
   useTeacherSubmission,
+  useDemoResetVersion,
   type Submission,
 } from "@/lib/demo-store";
+import {
+  buildDraftFromPayload,
+  buildEvaluationDraftPayload,
+} from "@/lib/draft-payload";
 
 export const Route = createFileRoute("/evaluations/$id")({
   loader: ({ params }) => {
@@ -112,6 +117,7 @@ function WorkspacePage() {
   const { ev: baseEv } = Route.useLoaderData();
   const parentSub = useParentSubmission();
   const teacherSub = useTeacherSubmission();
+  const resetVersion = useDemoResetVersion();
   const ev = useMemo(
     () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
     [baseEv, parentSub, teacherSub],
@@ -120,11 +126,17 @@ function WorkspacePage() {
   const [generating, setGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
 
+  // Clear any locally generated draft when the demo is reset.
+  useEffect(() => {
+    setGeneratedDraft(null);
+    setTab("Overview");
+  }, [resetVersion]);
+
   const handleGenerate = () => {
     if (generating) return;
     setGenerating(true);
     setTimeout(() => {
-      setGeneratedDraft(buildDraft(ev));
+      setGeneratedDraft(buildDraft(ev, parentSub, teacherSub));
       setGenerating(false);
       setTab("AI Draft");
       toast.success("Draft generated for SLP review");
