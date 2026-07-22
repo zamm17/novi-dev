@@ -1,10 +1,17 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { deriveEvaluationState, evaluations, getEvaluation, type Evaluation } from "./mock-data";
+import {
+  deriveEvaluationState,
+  evaluations,
+  getEvaluation,
+  type AssessmentEntry,
+  type Evaluation,
+} from "./mock-data";
 
 export const DEMO_EVAL_ID = "ev-001";
 const KEY_PREFIX = "novi.demo.";
 const parentKey = (evalId: string) => `${KEY_PREFIX}parent.${evalId}`;
 const teacherKey = (evalId: string) => `${KEY_PREFIX}teacher.${evalId}`;
+const assessmentKey = (evalId: string) => `${KEY_PREFIX}assessments.${evalId}`;
 
 /**
  * Resolves an intake token from the URL to a known evaluation id.
@@ -25,6 +32,18 @@ export interface Submission {
   fields: SubmittedField[];
 }
 
+export interface AssessmentSubmission {
+  submittedAt: string;
+  entries: AssessmentEntry[];
+  slpObservations: string;
+  strengths: string;
+  concerns: string;
+  educationalImpact: string;
+  speechSoundProfile?: string;
+  oralMotor?: string;
+  hearing?: string;
+}
+
 export interface SubmissionSection {
   title: string;
   fields: { label: string; values: string[] }[];
@@ -32,23 +51,23 @@ export interface SubmissionSection {
 
 // ---------- storage cache (stable refs for useSyncExternalStore) ----------
 
-const cache = new Map<string, Submission | null>();
+const cache = new Map<string, unknown>();
 let version = 0;
 let resetVersion = 0;
 
-function readKey(key: string): Submission | null {
+function readKey<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as Submission) : null;
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 }
 
-function getFromCache(key: string): Submission | null {
-  if (!cache.has(key)) cache.set(key, readKey(key));
-  return cache.get(key) ?? null;
+function getFromCache<T>(key: string): T | null {
+  if (!cache.has(key)) cache.set(key, readKey<T>(key));
+  return (cache.get(key) as T | null) ?? null;
 }
 
 function getVersion(): number {
@@ -99,6 +118,17 @@ export function saveTeacherSubmission(evalId: string, fields: SubmittedField[]) 
   emit();
 }
 
+export function saveAssessmentSubmission(
+  evalId: string,
+  data: Omit<AssessmentSubmission, "submittedAt">,
+) {
+  const sub: AssessmentSubmission = { ...data, submittedAt: new Date().toISOString() };
+  const key = assessmentKey(evalId);
+  window.localStorage.setItem(key, JSON.stringify(sub));
+  cache.set(key, sub);
+  emit();
+}
+
 export function resetDemoData() {
   if (typeof window === "undefined") return;
   // Clear every submission key we own, for every known evaluation and any
@@ -115,6 +145,7 @@ export function resetDemoData() {
   for (const ev of evaluations) {
     keysToRemove.add(parentKey(ev.id));
     keysToRemove.add(teacherKey(ev.id));
+    keysToRemove.add(assessmentKey(ev.id));
   }
   keysToRemove.forEach((k) => window.localStorage.removeItem(k));
   cache.clear();
@@ -124,11 +155,19 @@ export function resetDemoData() {
 
 export function useParentSubmission(evalId: string): Submission | null {
   const v = useSyncExternalStore(subscribe, getVersion, serverZero);
-  return useMemo(() => getFromCache(parentKey(evalId)), [evalId, v]);
+  return useMemo(() => getFromCache<Submission>(parentKey(evalId)), [evalId, v]);
 }
 export function useTeacherSubmission(evalId: string): Submission | null {
   const v = useSyncExternalStore(subscribe, getVersion, serverZero);
-  return useMemo(() => getFromCache(teacherKey(evalId)), [evalId, v]);
+  return useMemo(() => getFromCache<Submission>(teacherKey(evalId)), [evalId, v]);
+}
+
+export function useAssessmentSubmission(evalId: string): AssessmentSubmission | null {
+  const v = useSyncExternalStore(subscribe, getVersion, serverZero);
+  return useMemo(
+    () => getFromCache<AssessmentSubmission>(assessmentKey(evalId)),
+    [evalId, v],
+  );
 }
 
 /**
@@ -151,8 +190,9 @@ export function useDemoEvaluations(): Evaluation[] {
     () =>
       evaluations.map((e) =>
         applySubmissionsToEval(e, {
-          parent: getFromCache(parentKey(e.id)),
-          teacher: getFromCache(teacherKey(e.id)),
+          parent: getFromCache<Submission>(parentKey(e.id)),
+          teacher: getFromCache<Submission>(teacherKey(e.id)),
+          assessment: getFromCache<AssessmentSubmission>(assessmentKey(e.id)),
         }),
       ),
     [v],
@@ -211,7 +251,11 @@ export function formatSubmittedDate(iso: string): string {
  */
 export function applySubmissionsToEval(
   ev: Evaluation,
-  subs: { parent: Submission | null; teacher: Submission | null },
+  subs: {
+    parent: Submission | null;
+    teacher: Submission | null;
+    assessment?: AssessmentSubmission | null;
+  },
 ): Evaluation {
   let next = ev;
   if (subs.parent) {
@@ -231,6 +275,23 @@ export function applySubmissionsToEval(
         ...next.teacher,
         submitted: true,
         submittedDate: formatSubmittedDate(subs.teacher.submittedAt),
+      },
+    };
+  }
+  if (subs.assessment) {
+    const a = subs.assessment;
+    next = {
+      ...next,
+      assessments: {
+        ...next.assessments,
+        entries: a.entries,
+        slpObservations: a.slpObservations,
+        strengths: a.strengths,
+        concerns: a.concerns,
+        educationalImpact: a.educationalImpact,
+        speechSoundProfile: a.speechSoundProfile ?? next.assessments.speechSoundProfile,
+        oralMotor: a.oralMotor ?? next.assessments.oralMotor,
+        hearing: a.hearing ?? next.assessments.hearing,
       },
     };
   }
