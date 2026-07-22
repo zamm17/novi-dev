@@ -153,12 +153,12 @@ function WorkspacePage() {
       setTab("AI Draft");
       if (result.source === "edge-function") {
         toast.success("Draft generated for SLP review");
-      } else if (result.error) {
-        toast.message("Using local demo draft", {
-          description: "AI service unavailable — showing deterministic fallback for review.",
-        });
       } else {
-        toast.success("Draft generated for SLP review");
+        toast.message("Using local demo draft", {
+          description:
+            result.error ??
+            "AI service unavailable — showing deterministic fallback for review.",
+        });
       }
     })();
   };
