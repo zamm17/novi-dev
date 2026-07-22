@@ -137,6 +137,7 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     observations,
   } = p;
 
+  const MISSING = "No information was generated for this section. SLP review required.";
   const backgroundLead = `${student.firstName} ${student.lastName} is a ${student.grade}-grade student at ${student.school} referred for a ${evaluation.type.toLowerCase()}.`;
   const backgroundDetails = summarizeSections(parentIntake, [
     "Developmental history",
@@ -146,7 +147,7 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     "School history",
     "Prior services",
   ]);
-  const background = [backgroundLead, backgroundDetails].filter(Boolean).join("\n\n");
+  const backgroundAndHistory = [backgroundLead, backgroundDetails].filter(Boolean).join("\n\n");
 
   const parentLegacy = parentIntake.legacy as Evaluation["parent"] | undefined;
   const teacherLegacy = teacherIntake.legacy as Evaluation["teacher"] | undefined;
@@ -173,9 +174,11 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
         ]) || "Teacher submitted the questionnaire for this demo."
       : teacherLegacy?.classroomConcerns ?? "";
 
-  const assessmentResults = assessments
-    .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
-    .join("\n");
+  const assessmentResults = assessments.length
+    ? assessments
+        .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
+        .join("\n")
+    : MISSING;
 
   const presentLevels = [
     observations.strengths,
@@ -197,16 +200,73 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     .filter(Boolean)
     .join("\n\n");
 
+  const evaluationInformation = [
+    `Student: ${student.firstName} ${student.lastName}.`,
+    `Grade: ${student.grade}. School: ${student.school}.`,
+    `DOB: ${student.dob}. Primary language: ${student.primaryLanguage}.`,
+    `Evaluation type: ${evaluation.type}.`,
+    `Consent received: ${evaluation.consentDate}. Due date: ${evaluation.dueDate}.`,
+  ].join(" ");
+
+  const sourcesList: string[] = [];
+  if (parentIntake.source !== "none") sourcesList.push("parent questionnaire");
+  if (teacherIntake.source !== "none") sourcesList.push("teacher questionnaire");
+  if (assessments.length) sourcesList.push("standardized assessments");
+  if (observations.slpObservations) sourcesList.push("SLP observations during testing");
+  const sourcesOfData = sourcesList.length
+    ? `This draft is grounded in: ${sourcesList.join(", ")}. Additional records may be reviewed by the SLP.`
+    : MISSING;
+
+  const behavioralObservations = observations.slpObservations
+    ? observations.slpObservations
+    : MISSING;
+
+  const testingConditionsAndValidity = observations.slpObservations
+    ? "Based on available SLP observations, results appear to be a valid representation of the student's current skills. The SLP should confirm testing conditions and note any cultural or linguistic considerations."
+    : "SLP review required to confirm testing conditions and validity of results.";
+
+  const bilingual = /\//.test(student.primaryLanguage) || /spanish|vietnamese|bilingual/i.test(student.primaryLanguage);
+  const speechSoundProfile = (() => {
+    const hasArticEntry = assessments.some((a) => /GFTA|articulation|sounds/i.test(a.name));
+    if (!hasArticEntry) return "No articulation-specific assessment data provided. SLP review required if a speech sound profile is relevant.";
+    const notes = assessments
+      .filter((a) => /GFTA|articulation|sounds/i.test(a.name))
+      .map((a) => a.notes)
+      .filter(Boolean)
+      .join(" ");
+    return [
+      "Speech sound profile based on available data:",
+      notes,
+      bilingual ? "Bilingual/linguistic context should be considered; additional information may be needed to distinguish difference from disorder." : "",
+    ].filter(Boolean).join(" ");
+  })();
+
+  const educationalImpact = observations.educationalImpact || MISSING;
+
+  const eligibilityConsiderations =
+    "The information gathered may support the IEP team's consideration of speech/language eligibility. Eligibility is determined by the IEP team based on all available data. Novi does not determine eligibility.";
+
+  const recommendations = [
+    "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
+    "Suggested targets, cueing strategies, classroom supports, and carryover opportunities should be finalized by the SLP.",
+  ].join(" ");
+
   return {
-    background,
-    reasonForReferral: referralReason,
-    parentInputSummary,
-    teacherInputSummary,
+    evaluationInformation,
+    reasonForReferral: referralReason || MISSING,
+    sourcesOfData,
+    backgroundAndHistory: backgroundAndHistory || MISSING,
+    parentInputSummary: parentInputSummary || MISSING,
+    teacherInputSummary: teacherInputSummary || MISSING,
+    behavioralObservations,
+    testingConditionsAndValidity,
     assessmentResults,
-    presentLevels,
-    interpretation,
-    recommendations:
-      "The IEP team should consider the student's need for specially designed instruction based on the findings above. Novi does not determine eligibility.",
-    summary: `Summary of ${student.firstName}'s evaluation for team discussion. All sections above are editable by the SLP.`,
+    speechSoundProfile,
+    presentLevels: presentLevels || MISSING,
+    educationalImpact,
+    interpretation: interpretation || MISSING,
+    eligibilityConsiderations,
+    recommendations,
+    summary: `${student.firstName} presents with a communication profile summarized above. All sections are editable by the SLP; final decisions rest with the IEP team.`,
   };
 }

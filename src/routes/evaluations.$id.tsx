@@ -1222,18 +1222,25 @@ function SessionResponses({ sub }: { sub: Submission }) {
 }
 
 const draftSectionSources: Record<keyof DraftSections, string[]> = {
-  background: ["Parent intake", "Student details"],
+  evaluationInformation: ["Student details"],
   reasonForReferral: ["Referral reason", "Teacher input"],
+  sourcesOfData: ["Parent intake", "Teacher input", "Assessments", "SLP observations"],
+  backgroundAndHistory: ["Parent intake", "Student details"],
   parentInputSummary: ["Parent intake"],
   teacherInputSummary: ["Teacher input"],
+  behavioralObservations: ["SLP observations"],
+  testingConditionsAndValidity: ["SLP observations", "Student details"],
   assessmentResults: ["Assessment scores"],
+  speechSoundProfile: ["Assessment scores", "SLP observations"],
   presentLevels: ["Assessment scores", "SLP observations", "Teacher input"],
+  educationalImpact: ["Teacher input", "SLP observations"],
   interpretation: [
     "Assessment scores",
     "Parent intake",
     "Teacher input",
     "SLP observations",
   ],
+  eligibilityConsiderations: ["All required inputs"],
   recommendations: ["SLP observations", "Educational impact"],
   summary: ["All required inputs"],
 };
@@ -1342,14 +1349,21 @@ function DraftTab({
   const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
 
   const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
-    { key: "background", label: "Background" },
-    { key: "reasonForReferral", label: "Reason for referral" },
+    { key: "evaluationInformation", label: "Evaluation information", rows: 3 },
+    { key: "reasonForReferral", label: "Reason for referral", rows: 3 },
+    { key: "sourcesOfData", label: "Sources of data", rows: 3 },
+    { key: "backgroundAndHistory", label: "Background and history", rows: 5 },
     { key: "parentInputSummary", label: "Parent input summary", rows: 4 },
     { key: "teacherInputSummary", label: "Teacher input summary", rows: 4 },
+    { key: "behavioralObservations", label: "Behavioral observations", rows: 4 },
+    { key: "testingConditionsAndValidity", label: "Testing conditions and validity", rows: 3 },
     { key: "assessmentResults", label: "Assessment results", rows: 5 },
-    { key: "presentLevels", label: "Present levels", rows: 4 },
-    { key: "interpretation", label: "Interpretation", rows: 4 },
-    { key: "recommendations", label: "Recommendations", rows: 4 },
+    { key: "speechSoundProfile", label: "Speech sound profile", rows: 4 },
+    { key: "presentLevels", label: "Present levels of performance", rows: 4 },
+    { key: "educationalImpact", label: "Educational impact", rows: 4 },
+    { key: "interpretation", label: "Clinical interpretation", rows: 4 },
+    { key: "eligibilityConsiderations", label: "Eligibility considerations (team decision)", rows: 4 },
+    { key: "recommendations", label: "Recommendations", rows: 5 },
     { key: "summary", label: "Summary", rows: 4 },
   ];
 
