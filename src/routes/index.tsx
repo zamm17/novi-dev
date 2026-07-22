@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
-import { evaluations } from "@/lib/mock-data";
-import { AlertCircle, ArrowRight, Sparkles } from "lucide-react";
+import { evaluations, type Evaluation } from "@/lib/mock-data";
+import { AlertCircle, ArrowRight, Copy, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -121,15 +122,20 @@ function DashboardPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{ev.nextAction}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-foreground/90">{ev.nextAction}</div>
+                    </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        to="/evaluations/$id"
-                        params={{ id: ev.id }}
-                        className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
-                      >
-                        Open <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <RowAction ev={ev} />
+                        <Link
+                          to="/evaluations/$id"
+                          params={{ id: ev.id }}
+                          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                        >
+                          Open <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -145,4 +151,61 @@ function DashboardPage() {
       </div>
     </AppShell>
   );
+}
+
+function RowAction({ ev }: { ev: Evaluation }) {
+  switch (ev.status) {
+    case "Waiting on parent":
+      return (
+        <button
+          type="button"
+          onClick={() => toast.success("Demo parent link copied.")}
+          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+        >
+          <Copy className="h-3.5 w-3.5" /> Copy parent link
+        </button>
+      );
+    case "Waiting on teacher":
+      return (
+        <button
+          type="button"
+          onClick={() => toast.success("Demo teacher link copied.")}
+          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+        >
+          <Copy className="h-3.5 w-3.5" /> Copy teacher link
+        </button>
+      );
+    case "Assessment info needed":
+      return (
+        <Link
+          to="/evaluations/$id"
+          params={{ id: ev.id }}
+          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+        >
+          Add assessments
+        </Link>
+      );
+    case "Ready to generate":
+      return (
+        <Link
+          to="/evaluations/$id"
+          params={{ id: ev.id }}
+          className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> Generate draft
+        </Link>
+      );
+    case "Draft in review":
+      return (
+        <Link
+          to="/evaluations/$id"
+          params={{ id: ev.id }}
+          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+        >
+          Review draft
+        </Link>
+      );
+    default:
+      return null;
+  }
 }
