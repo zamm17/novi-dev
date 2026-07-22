@@ -142,6 +142,7 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     "Developmental history",
     "Medical and hearing history",
     "Language background",
+    "School and educational history",
     "School history",
     "Prior services",
   ]);
