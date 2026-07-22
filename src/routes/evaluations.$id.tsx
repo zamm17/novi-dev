@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
-import { hasSupabaseDraftConfig } from "@/lib/generate-draft";
+import { hasSupabaseDraftConfig, getDraftEndpointUrl } from "@/lib/generate-draft";
 import {
   getEvaluation,
   getChecklist,
@@ -1329,6 +1329,9 @@ function DraftTab({
               ? "AI connection: Supabase config detected"
               : "AI connection: Supabase config missing"}{" "}
             · prototype-only
+          </p>
+          <p className="mt-1 break-all text-[11px] text-emerald-900/60">
+            AI endpoint: {getDraftEndpointUrl()}
           </p>
         </div>
       </Card>
