@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Trash2,
   Loader2,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
@@ -29,6 +30,14 @@ import {
   type AssessmentEntry,
   type DraftSections,
 } from "@/lib/mock-data";
+import {
+  applySubmissionsToEval,
+  groupSubmissionBySection,
+  resetDemoData,
+  useParentSubmission,
+  useTeacherSubmission,
+  type Submission,
+} from "@/lib/demo-store";
 
 export const Route = createFileRoute("/evaluations/$id")({
   loader: ({ params }) => {
@@ -100,7 +109,13 @@ const missingItemMeta: Record<
 };
 
 function WorkspacePage() {
-  const { ev } = Route.useLoaderData();
+  const { ev: baseEv } = Route.useLoaderData();
+  const parentSub = useParentSubmission();
+  const teacherSub = useTeacherSubmission();
+  const ev = useMemo(
+    () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
+    [baseEv, parentSub, teacherSub],
+  );
   const [tab, setTab] = useState<Tab>("Overview");
   const [generating, setGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
@@ -140,11 +155,13 @@ function WorkspacePage() {
                   onGenerate={handleGenerate}
                   generating={generating}
                   hasGenerated={Boolean(generatedDraft)}
+                  sessionParent={parentSub}
+                  sessionTeacher={teacherSub}
                 />
               )}
               {tab === "Student Details" && <StudentDetailsTab ev={ev} />}
-              {tab === "Parent Input" && <ParentTab ev={ev} />}
-              {tab === "Teacher Input" && <TeacherTab ev={ev} />}
+              {tab === "Parent Input" && <ParentTab ev={ev} sessionSub={parentSub} />}
+              {tab === "Teacher Input" && <TeacherTab ev={ev} sessionSub={teacherSub} />}
               {tab === "Assessments & Observations" && <AssessmentsTab ev={ev} />}
               {tab === "AI Draft" && (
                 <DraftTab
@@ -164,6 +181,7 @@ function WorkspacePage() {
               Demo prototype using fictional data. Novi assists — the SLP determines eligibility and
               clinical recommendations.
             </div>
+            <ResetDemoButton />
           </aside>
         </div>
       </div>
