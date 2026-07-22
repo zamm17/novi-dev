@@ -901,10 +901,12 @@ function PendingIntake({
   who,
   onCopy,
   blockers,
+  evalId,
 }: {
   who: "Parent" | "Teacher";
   onCopy: () => void;
   blockers: string[];
+  evalId: string;
 }) {
   return (
     <div className="rounded-md border border-dashed border-border p-6 text-center">
@@ -975,7 +977,8 @@ function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission 
       ) : (
         <PendingIntake
           who="Parent"
-          onCopy={() => copyLink("parent")}
+          onCopy={() => copyLink("parent", ev.id)}
+          evalId={ev.id}
           blockers={[
             "Developmental history",
             "Medical / hearing history",
@@ -1018,7 +1021,8 @@ function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission
       ) : (
         <PendingIntake
           who="Teacher"
-          onCopy={() => copyLink("teacher")}
+          onCopy={() => copyLink("teacher", ev.id)}
+          evalId={ev.id}
           blockers={[
             "Classroom observations",
             "Academic impact",
