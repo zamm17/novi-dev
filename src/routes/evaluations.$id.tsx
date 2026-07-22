@@ -154,10 +154,10 @@ function WorkspacePage() {
       if (result.source === "edge-function") {
         toast.success("Draft generated for SLP review");
       } else {
+        if (result.error) console.warn("[Novi] Draft generation fallback:", result.error);
         toast.message("Using local demo draft", {
           description:
-            result.error ??
-            "AI service unavailable — showing deterministic fallback for review.",
+            "AI generation was unavailable, so Novi used the prototype fallback.",
         });
       }
     })();
