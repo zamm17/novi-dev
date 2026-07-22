@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -12,6 +12,10 @@ import {
   RefreshCw,
   ClipboardCopy,
   Info,
+  Plus,
+  Trash2,
+  Loader2,
+  ArrowRight,
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
@@ -22,6 +26,8 @@ import {
   workflowSteps,
   type Evaluation,
   type WorkflowStep,
+  type AssessmentEntry,
+  type DraftSections,
 } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/evaluations/$id")({
@@ -56,9 +62,59 @@ const tabs = [
 ] as const;
 type Tab = (typeof tabs)[number];
 
+// Map required checklist items -> destination tab + why it matters
+const missingItemMeta: Record<
+  string,
+  { tab: Tab; why: string; action: string }
+> = {
+  "Student demographics": {
+    tab: "Student Details",
+    why: "Identifies the student and frames the report header.",
+    action: "Go to student details",
+  },
+  "Referral reason": {
+    tab: "Student Details",
+    why: "Anchors the Reason for Referral section of the report.",
+    action: "Go to student details",
+  },
+  "Parent questionnaire": {
+    tab: "Parent Input",
+    why: "Provides developmental, medical, and home-language history.",
+    action: "Open parent input",
+  },
+  "Teacher questionnaire": {
+    tab: "Teacher Input",
+    why: "Provides classroom impact and functional communication data.",
+    action: "Open teacher input",
+  },
+  "Assessment scores": {
+    tab: "Assessments & Observations",
+    why: "Required for the Assessment Results and Present Levels sections.",
+    action: "Go to assessments",
+  },
+  "SLP observations": {
+    tab: "Assessments & Observations",
+    why: "Grounds interpretation and clinical impressions in the draft.",
+    action: "Go to assessments",
+  },
+};
+
 function WorkspacePage() {
   const { ev } = Route.useLoaderData();
   const [tab, setTab] = useState<Tab>("Overview");
+  const [generating, setGenerating] = useState(false);
+  const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
+
+  const handleGenerate = () => {
+    if (generating) return;
+    setGenerating(true);
+    setTimeout(() => {
+      setGeneratedDraft(buildDraft(ev));
+      setGenerating(false);
+      setTab("AI Draft");
+      toast.success("Draft generated for SLP review");
+    }, 1000);
+  };
 
   return (
     <AppShell>
@@ -77,17 +133,33 @@ function WorkspacePage() {
           <div className="min-w-0">
             <TabBar tab={tab} setTab={setTab} />
             <div className="mt-4">
-              {tab === "Overview" && <OverviewTab ev={ev} onGoDraft={() => setTab("AI Draft")} />}
+              {tab === "Overview" && (
+                <OverviewTab
+                  ev={ev}
+                  setTab={setTab}
+                  onGenerate={handleGenerate}
+                  generating={generating}
+                  hasGenerated={Boolean(generatedDraft)}
+                />
+              )}
               {tab === "Student Details" && <StudentDetailsTab ev={ev} />}
               {tab === "Parent Input" && <ParentTab ev={ev} />}
               {tab === "Teacher Input" && <TeacherTab ev={ev} />}
               {tab === "Assessments & Observations" && <AssessmentsTab ev={ev} />}
-              {tab === "AI Draft" && <DraftTab ev={ev} />}
+              {tab === "AI Draft" && (
+                <DraftTab
+                  ev={ev}
+                  setTab={setTab}
+                  generatedDraft={generatedDraft}
+                  onGenerate={handleGenerate}
+                  generating={generating}
+                />
+              )}
             </div>
           </div>
 
           <aside className="space-y-4">
-            <ChecklistCard ev={ev} />
+            <ChecklistCard ev={ev} setTab={setTab} />
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-[11px] leading-relaxed text-muted-foreground">
               Demo prototype using fictional data. Novi assists — the SLP determines eligibility and
               clinical recommendations.
@@ -179,7 +251,7 @@ function WorkflowProgress({ current }: { current: WorkflowStep }) {
   );
 }
 
-function ChecklistCard({ ev }: { ev: Evaluation }) {
+function ChecklistCard({ ev, setTab }: { ev: Evaluation; setTab: (t: Tab) => void }) {
   const list = getChecklist(ev);
   const required = list.filter((c) => c.required);
   const optional = list.filter((c) => !c.required);
@@ -190,18 +262,39 @@ function ChecklistCard({ ev }: { ev: Evaluation }) {
         Required items must be complete before generating a draft.
       </p>
       <ul className="mt-3 space-y-2">
-        {required.map((c) => (
-          <li key={c.label} className="flex items-start gap-2 text-sm">
-            {c.complete ? (
-              <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
-            ) : (
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
-            )}
-            <span className={c.complete ? "text-foreground/80" : "font-medium text-foreground"}>
-              {c.label}
-            </span>
-          </li>
-        ))}
+        {required.map((c) => {
+          const meta = missingItemMeta[c.label];
+          return (
+            <li key={c.label} className="text-sm">
+              <div className="flex items-start gap-2">
+                {c.complete ? (
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                ) : (
+                  <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
+                )}
+                <span
+                  className={
+                    c.complete ? "text-foreground/80" : "font-medium text-foreground"
+                  }
+                >
+                  {c.label}
+                </span>
+              </div>
+              {!c.complete && meta && (
+                <div className="ml-6 mt-1">
+                  <p className="text-xs text-muted-foreground">{meta.why}</p>
+                  <button
+                    type="button"
+                    onClick={() => setTab(meta.tab)}
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  >
+                    {meta.action} <ArrowRight className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <div className="mt-4 border-t border-border pt-3">
         <div className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">Optional</div>
