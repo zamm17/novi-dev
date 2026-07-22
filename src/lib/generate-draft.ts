@@ -17,14 +17,14 @@ const PROTOTYPE_SUPABASE_PUBLIC_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwZnphandqbXlnd3N6bW5zY2h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2ODg5NjMsImV4cCI6MjEwMDI2NDk2M30.Chgfz9Twxrq5_wfznD4v4eWI2dgf_qCrSUztrqFke6Y";
 
 function resolveSupabaseConfig(): { url?: string; key?: string } {
-  const url =
-    (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
-    PROTOTYPE_SUPABASE_URL;
-  const key =
-    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
-    PROTOTYPE_SUPABASE_PUBLIC_KEY;
-  return { url, key };
+  // Prototype: pin to the specific Supabase project that hosts the deployed
+  // `generate-evaluation-draft` edge function. The Lovable Cloud integration
+  // auto-overwrites VITE_SUPABASE_URL to a different project, so we ignore
+  // env vars here on purpose until this moves to a proper deploy config.
+  return {
+    url: PROTOTYPE_SUPABASE_URL,
+    key: PROTOTYPE_SUPABASE_PUBLIC_KEY,
+  };
 }
 
 export function getDraftEndpointUrl(): string {
