@@ -153,28 +153,45 @@ function DashboardPage() {
   );
 }
 
+function copyIntakeLink(kind: "parent" | "teacher") {
+  const path = kind === "parent" ? "/parent-intake/demo" : "/teacher-intake/demo";
+  const url =
+    typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    void navigator.clipboard.writeText(url).catch(() => {});
+  }
+  toast.success(`Demo ${kind} link copied`, { description: url });
+}
+
+function IntakeRowAction({ kind }: { kind: "parent" | "teacher" }) {
+  const to = kind === "parent" ? "/parent-intake/$token" : "/teacher-intake/$token";
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => copyIntakeLink(kind)}
+        className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+      >
+        <Copy className="h-3.5 w-3.5" /> Copy {kind} link
+      </button>
+      <Link
+        to={to}
+        params={{ token: "demo" }}
+        target="_blank"
+        className="text-xs font-medium text-primary hover:underline"
+      >
+        Preview
+      </Link>
+    </div>
+  );
+}
+
 function RowAction({ ev }: { ev: Evaluation }) {
   switch (ev.status) {
     case "Waiting on parent":
-      return (
-        <button
-          type="button"
-          onClick={() => toast.success("Demo parent link copied.")}
-          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
-        >
-          <Copy className="h-3.5 w-3.5" /> Copy parent link
-        </button>
-      );
+      return <IntakeRowAction kind="parent" />;
     case "Waiting on teacher":
-      return (
-        <button
-          type="button"
-          onClick={() => toast.success("Demo teacher link copied.")}
-          className="inline-flex items-center gap-1 rounded-md border border-input px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
-        >
-          <Copy className="h-3.5 w-3.5" /> Copy teacher link
-        </button>
-      );
+      return <IntakeRowAction kind="teacher" />;
     case "Assessment info needed":
       return (
         <Link
