@@ -428,6 +428,14 @@ function NextActionPanel({
 
   let action: ActionSpec;
   switch (ev.status) {
+    case "Missing information":
+      action = {
+        label: "Copy parent link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Multiple required items are missing. Start by sharing intake links with the parent and teacher.",
+        onClick: () => copyLink("parent"),
+      };
+      break;
     case "Waiting on parent":
       action = {
         label: "Copy parent link",
@@ -1233,8 +1241,39 @@ function DraftTab({
     );
   }
 
-  const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
   const hasDraftContent = Boolean(generatedDraft || ev.draft);
+
+  if (!hasDraftContent) {
+    return (
+      <Card title="AI Draft">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-5 text-center">
+          <Sparkles className="mx-auto h-6 w-6 text-emerald-700" />
+          <div className="mt-2 text-sm font-medium text-emerald-900">
+            Ready to generate
+          </div>
+          <p className="mx-auto mt-1 max-w-md text-sm text-emerald-900/80">
+            All required information is complete. Generate an editable draft when
+            you're ready. Novi assists — the SLP reviews and edits every section.
+          </p>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}{" "}
+            {generating ? "Generating…" : "Generate draft"}
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
+  const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
 
   const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
     { key: "background", label: "Background" },
@@ -1268,21 +1307,6 @@ function DraftTab({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {!hasDraftContent ? (
-          <button
-            type="button"
-            onClick={onGenerate}
-            disabled={generating}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}{" "}
-            {generating ? "Generating…" : "Generate draft"}
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={() => toast.success("Draft saved (demo).")}

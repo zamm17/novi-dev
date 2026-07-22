@@ -1,5 +1,6 @@
 export type EvalStatus =
   | "Intake needed"
+  | "Missing information"
   | "Waiting on parent"
   | "Waiting on teacher"
   | "Assessment info needed"
@@ -117,7 +118,7 @@ export const evaluations: Evaluation[] = [
       "Teacher reports persistent difficulty producing /r/, /s/, and /th/ sounds impacting classroom participation and peer interaction.",
     consentDate: "2026-06-20",
     dueDate: "2026-08-14",
-    status: "Waiting on parent",
+    status: "Missing information",
     missingItems: ["Parent questionnaire", "Teacher questionnaire"],
     nextAction: "Send parent and teacher intake forms to collect background.",
     currentStep: "Parent input",
@@ -347,6 +348,8 @@ export function statusTone(status: EvalStatus): "ready" | "review" | "waiting" |
       return "waiting";
     case "Assessment info needed":
       return "missing";
+    case "Missing information":
+      return "missing";
     case "Intake needed":
       return "intake";
   }
@@ -407,7 +410,7 @@ export function deriveEvaluationState(ev: Evaluation): {
 
   if (parentMissing && teacherMissing) {
     return {
-      status: "Waiting on parent",
+      status: "Missing information",
       missingItems: missing,
       nextAction: "Send parent and teacher intake forms to collect background.",
       currentStep: "Parent input",
