@@ -32,6 +32,9 @@ export interface EvaluationDraftPayload {
     strengths: string;
     concerns: string;
     educationalImpact: string;
+    speechSoundProfile?: string;
+    oralMotor?: string;
+    hearing?: string;
   };
   missingRequiredItems: string[];
 }
@@ -64,6 +67,9 @@ export function buildEvaluationDraftPayload(
     strengths?: string;
     concerns?: string;
     educationalImpact?: string;
+    speechSoundProfile?: string;
+    oralMotor?: string;
+    hearing?: string;
   },
 ): EvaluationDraftPayload {
   const entries = assessmentState?.entries ?? ev.assessments.entries;
@@ -100,6 +106,10 @@ export function buildEvaluationDraftPayload(
       concerns: assessmentState?.concerns ?? ev.assessments.concerns,
       educationalImpact:
         assessmentState?.educationalImpact ?? ev.assessments.educationalImpact,
+      speechSoundProfile:
+        assessmentState?.speechSoundProfile ?? ev.assessments.speechSoundProfile,
+      oralMotor: assessmentState?.oralMotor ?? ev.assessments.oralMotor,
+      hearing: assessmentState?.hearing ?? ev.assessments.hearing,
     },
     missingRequiredItems: missing,
   };
@@ -213,6 +223,8 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
   if (teacherIntake.source !== "none") sourcesList.push("teacher questionnaire");
   if (assessments.length) sourcesList.push("standardized assessments");
   if (observations.slpObservations) sourcesList.push("SLP observations during testing");
+  if (observations.oralMotor) sourcesList.push("oral mechanism examination");
+  if (observations.hearing) sourcesList.push("hearing screening");
   const sourcesOfData = sourcesList.length
     ? `This draft is grounded in: ${sourcesList.join(", ")}. Additional records may be reviewed by the SLP.`
     : MISSING;
@@ -221,24 +233,35 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     ? observations.slpObservations
     : MISSING;
 
-  const testingConditionsAndValidity = observations.slpObservations
-    ? "Based on available SLP observations, results appear to be a valid representation of the student's current skills. The SLP should confirm testing conditions and note any cultural or linguistic considerations."
-    : "SLP review required to confirm testing conditions and validity of results.";
+  const validityParts: string[] = [];
+  if (observations.slpObservations) {
+    validityParts.push(
+      "Based on available SLP observations, results appear to be a valid representation of the student's current skills, pending SLP confirmation of testing conditions and any cultural or linguistic considerations.",
+    );
+  } else {
+    validityParts.push("SLP review required to confirm testing conditions and validity of results.");
+  }
+  if (observations.hearing) validityParts.push(`Hearing context: ${observations.hearing}`);
+  if (observations.oralMotor) validityParts.push(`Oral-motor context: ${observations.oralMotor}`);
+  const testingConditionsAndValidity = validityParts.join(" ");
 
   const bilingual = /\//.test(student.primaryLanguage) || /spanish|vietnamese|bilingual/i.test(student.primaryLanguage);
   const speechSoundProfile = (() => {
-    const hasArticEntry = assessments.some((a) => /GFTA|articulation|sounds/i.test(a.name));
-    if (!hasArticEntry) return "No articulation-specific assessment data provided. SLP review required if a speech sound profile is relevant.";
-    const notes = assessments
-      .filter((a) => /GFTA|articulation|sounds/i.test(a.name))
-      .map((a) => a.notes)
+    const articNotes = assessments
+      .filter((a) => /GFTA|articulation|sounds|phonolog/i.test(a.name))
+      .map((a) => `${a.name}: ${a.notes}`)
       .filter(Boolean)
       .join(" ");
-    return [
-      "Speech sound profile based on available data:",
-      notes,
-      bilingual ? "Bilingual/linguistic context should be considered; additional information may be needed to distinguish difference from disorder." : "",
-    ].filter(Boolean).join(" ");
+    const parts: string[] = [];
+    if (observations.speechSoundProfile) parts.push(observations.speechSoundProfile);
+    if (articNotes) parts.push(articNotes);
+    if (!parts.length) {
+      return "No articulation-specific assessment data or speech sound profile provided. SLP review required if a speech sound profile is relevant.";
+    }
+    if (bilingual) {
+      parts.push("Bilingual/linguistic context should be considered; additional information may be needed to distinguish difference from disorder.");
+    }
+    return parts.join(" ");
   })();
 
   const educationalImpact = observations.educationalImpact || MISSING;
