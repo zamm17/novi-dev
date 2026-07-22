@@ -223,6 +223,8 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
   if (teacherIntake.source !== "none") sourcesList.push("teacher questionnaire");
   if (assessments.length) sourcesList.push("standardized assessments");
   if (observations.slpObservations) sourcesList.push("SLP observations during testing");
+  if (observations.oralMotor) sourcesList.push("oral mechanism examination");
+  if (observations.hearing) sourcesList.push("hearing screening");
   const sourcesOfData = sourcesList.length
     ? `This draft is grounded in: ${sourcesList.join(", ")}. Additional records may be reviewed by the SLP.`
     : MISSING;
