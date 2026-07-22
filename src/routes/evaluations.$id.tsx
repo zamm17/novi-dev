@@ -115,8 +115,8 @@ const missingItemMeta: Record<
 
 function WorkspacePage() {
   const { ev: baseEv } = Route.useLoaderData();
-  const parentSub = useParentSubmission();
-  const teacherSub = useTeacherSubmission();
+  const parentSub = useParentSubmission(baseEv.id);
+  const teacherSub = useTeacherSubmission(baseEv.id);
   const resetVersion = useDemoResetVersion();
   const ev = useMemo(
     () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
@@ -416,14 +416,17 @@ function Card({
   );
 }
 
-function copyLink(kind: "parent" | "teacher") {
-  const path = kind === "parent" ? "/parent-intake/demo" : "/teacher-intake/demo";
+function copyLink(kind: "parent" | "teacher", evalId: string) {
+  const path =
+    kind === "parent" ? `/parent-intake/${evalId}` : `/teacher-intake/${evalId}`;
   const url =
     typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
   if (typeof navigator !== "undefined" && navigator.clipboard) {
     void navigator.clipboard.writeText(url).catch(() => {});
   }
-  toast.success(`Demo ${kind} link copied`, { description: url });
+  toast.success(`${kind === "parent" ? "Parent" : "Teacher"} link copied`, {
+    description: url,
+  });
 }
 
 function NextActionPanel({
@@ -454,13 +457,13 @@ function NextActionPanel({
         label: "Copy parent link",
         icon: <Copy className="h-4 w-4" />,
         why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
-        onClick: () => copyLink("parent"),
+        onClick: () => copyLink("parent", ev.id),
       };
       const teacherAction: ActionSpec = {
         label: "Copy teacher link",
         icon: <Copy className="h-4 w-4" />,
         why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
-        onClick: () => copyLink("teacher"),
+        onClick: () => copyLink("teacher", ev.id),
         variant: "secondary",
       };
       actions = [];
@@ -469,6 +472,18 @@ function NextActionPanel({
         ...teacherAction,
         variant: actions.length === 0 ? "primary" : "secondary",
       });
+      const assessmentsMissing =
+        ev.missingItems.includes("Assessment scores") ||
+        ev.missingItems.includes("SLP observations");
+      if (assessmentsMissing) {
+        actions.push({
+          label: "Go to assessments",
+          icon: <ArrowRight className="h-4 w-4" />,
+          why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
+          onClick: () => setTab("Assessments & Observations"),
+          variant: actions.length === 0 ? "primary" : "secondary",
+        });
+      }
       if (actions.length === 0) {
         actions = [{
           label: "Open student details",
@@ -484,7 +499,7 @@ function NextActionPanel({
         label: "Copy parent link",
         icon: <Copy className="h-4 w-4" />,
         why: "Parent intake supplies developmental, medical, and home-language history the report requires.",
-        onClick: () => copyLink("parent"),
+        onClick: () => copyLink("parent", ev.id),
       }];
       break;
     case "Waiting on teacher":
@@ -492,15 +507,7 @@ function NextActionPanel({
         label: "Copy teacher link",
         icon: <Copy className="h-4 w-4" />,
         why: "Teacher input describes classroom impact and functional communication — key context for eligibility discussion.",
-        onClick: () => copyLink("teacher"),
-      }];
-      break;
-    case "Assessment info needed":
-      actions = [{
-        label: "Go to assessments",
-        icon: <ArrowRight className="h-4 w-4" />,
-        why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
-        onClick: () => setTab("Assessments & Observations"),
+        onClick: () => copyLink("teacher", ev.id),
       }];
       break;
     case "Ready to generate":
@@ -663,7 +670,7 @@ function OverviewTab({
           <div className="flex items-center gap-1.5">
             <Link
               to="/parent-intake/$token"
-              params={{ token: "demo" }}
+              params={{ token: ev.id }}
               target="_blank"
               className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
             >
@@ -671,7 +678,7 @@ function OverviewTab({
             </Link>
             <button
               type="button"
-              onClick={() => copyLink("parent")}
+              onClick={() => copyLink("parent", ev.id)}
               className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
             >
               <Copy className="h-3.5 w-3.5" /> Copy parent link
@@ -708,7 +715,7 @@ function OverviewTab({
           <div className="flex items-center gap-1.5">
             <Link
               to="/teacher-intake/$token"
-              params={{ token: "demo" }}
+              params={{ token: ev.id }}
               target="_blank"
               className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
             >
@@ -716,7 +723,7 @@ function OverviewTab({
             </Link>
             <button
               type="button"
-              onClick={() => copyLink("teacher")}
+              onClick={() => copyLink("teacher", ev.id)}
               className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
             >
               <Copy className="h-3.5 w-3.5" /> Copy teacher link
@@ -894,10 +901,12 @@ function PendingIntake({
   who,
   onCopy,
   blockers,
+  evalId,
 }: {
   who: "Parent" | "Teacher";
   onCopy: () => void;
   blockers: string[];
+  evalId: string;
 }) {
   return (
     <div className="rounded-md border border-dashed border-border p-6 text-center">
@@ -916,7 +925,7 @@ function PendingIntake({
       <div className="mt-2">
         <Link
           to={who === "Parent" ? "/parent-intake/$token" : "/teacher-intake/$token"}
-          params={{ token: "demo" }}
+          params={{ token: evalId }}
           target="_blank"
           className="text-xs font-medium text-primary hover:underline"
         >
@@ -968,7 +977,8 @@ function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission 
       ) : (
         <PendingIntake
           who="Parent"
-          onCopy={() => copyLink("parent")}
+          onCopy={() => copyLink("parent", ev.id)}
+          evalId={ev.id}
           blockers={[
             "Developmental history",
             "Medical / hearing history",
@@ -1011,7 +1021,8 @@ function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission
       ) : (
         <PendingIntake
           who="Teacher"
-          onCopy={() => copyLink("teacher")}
+          onCopy={() => copyLink("teacher", ev.id)}
+          evalId={ev.id}
           blockers={[
             "Classroom observations",
             "Academic impact",
