@@ -88,7 +88,7 @@ export function parentAutofill(firstName: string, lastName: string): AutofillVal
   const F = firstName;
   return {
   "Q:Parent info > Your name": `Parent of ${F}`,
-  "Q:Parent info > Relationship": "Parent / guardian",
+  "Q:Parent info > Relationship": "Guardian",
   "Q:Parent info > Best way to reach you": "Email",
   "Q:Parent info > Contact info": `parent.${F.toLowerCase()}@example.com`,
 
