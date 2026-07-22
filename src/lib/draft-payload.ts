@@ -32,6 +32,9 @@ export interface EvaluationDraftPayload {
     strengths: string;
     concerns: string;
     educationalImpact: string;
+    speechSoundProfile?: string;
+    oralMotor?: string;
+    hearing?: string;
   };
   missingRequiredItems: string[];
 }
@@ -64,6 +67,9 @@ export function buildEvaluationDraftPayload(
     strengths?: string;
     concerns?: string;
     educationalImpact?: string;
+    speechSoundProfile?: string;
+    oralMotor?: string;
+    hearing?: string;
   },
 ): EvaluationDraftPayload {
   const entries = assessmentState?.entries ?? ev.assessments.entries;
@@ -100,6 +106,10 @@ export function buildEvaluationDraftPayload(
       concerns: assessmentState?.concerns ?? ev.assessments.concerns,
       educationalImpact:
         assessmentState?.educationalImpact ?? ev.assessments.educationalImpact,
+      speechSoundProfile:
+        assessmentState?.speechSoundProfile ?? ev.assessments.speechSoundProfile,
+      oralMotor: assessmentState?.oralMotor ?? ev.assessments.oralMotor,
+      hearing: assessmentState?.hearing ?? ev.assessments.hearing,
     },
     missingRequiredItems: missing,
   };
