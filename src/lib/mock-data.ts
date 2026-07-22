@@ -117,39 +117,12 @@ export const evaluations: Evaluation[] = [
       "Teacher reports persistent difficulty producing /r/, /s/, and /th/ sounds impacting classroom participation and peer interaction.",
     consentDate: "2026-06-20",
     dueDate: "2026-08-14",
-    status: "Ready to generate",
-    missingItems: [],
-    nextAction: "Generate AI draft for SLP review",
-    currentStep: "Draft",
-    parent: {
-      submitted: true,
-      submittedDate: "2026-06-28",
-      concerns:
-        "Maya is often frustrated when family members don't understand her. She avoids speaking to unfamiliar adults.",
-      developmentalHistory:
-        "Met early motor milestones on time. First words around 14 months. Sentences by 2.5 years.",
-      medicalHistory: "No significant medical history. Passed newborn hearing screen. No ear infections after age 3.",
-      communicationBackground:
-        "Received private speech therapy briefly in kindergarten (6 sessions) for articulation.",
-      homeLanguageContext:
-        "Bilingual home. Spanish spoken with grandparents; English primarily with parents and at school.",
-      priorServices: "No current outside services.",
-    },
-    teacher: {
-      submitted: true,
-      submittedDate: "2026-07-02",
-      classroomConcerns:
-        "Peers sometimes ask Maya to repeat herself. She is hesitant to participate in group discussions.",
-      academicImpact:
-        "Reading fluency is on grade level, but oral reading is affected by articulation errors. Written work is unaffected.",
-      functionalCommunication:
-        "Communicates needs, answers direct questions, follows multi-step directions. Struggles with sustained oral presentations.",
-      behaviorSocial: "Kind, cooperative, has close friendships. Avoids raising hand during whole-group instruction.",
-      examples:
-        "Substitutes /w/ for /r/ (e.g., 'wabbit'), /f/ for /th/ (e.g., 'fumb'), and produces a frontal lisp on /s/.",
-      supportsTried:
-        "Modeled correct productions, preferential seating near the teacher, one-on-one reading practice.",
-    },
+    status: "Waiting on parent",
+    missingItems: ["Parent questionnaire", "Teacher questionnaire"],
+    nextAction: "Send parent and teacher intake forms to collect background.",
+    currentStep: "Parent input",
+    parent: { submitted: false },
+    teacher: { submitted: false },
     assessments: {
       entries: [
         { name: "GFTA-3 — Sounds in Words", standardScore: "72", percentile: "3", notes: "Multiple errors on /r/, /s/, /th/. Errors consistent across positions." },
@@ -402,4 +375,72 @@ export function getChecklist(ev: Evaluation): ChecklistItem[] {
 export function isReadyForDraft(ev: Evaluation) {
   const required = getChecklist(ev).filter((c) => c.required);
   return required.every((c) => c.complete);
+}
+
+/**
+ * Derives the status / missingItems / nextAction / currentStep from the current
+ * state of an evaluation's checklist. Kept in one place so the dashboard and
+ * workspace stay consistent.
+ */
+export function deriveEvaluationState(ev: Evaluation): {
+  status: EvalStatus;
+  missingItems: string[];
+  nextAction: string;
+  currentStep: WorkflowStep;
+} {
+  const list = getChecklist(ev);
+  const missing = list.filter((c) => c.required && !c.complete).map((c) => c.label);
+
+  if (missing.length === 0) {
+    return {
+      status: "Ready to generate",
+      missingItems: [],
+      nextAction: "Generate AI draft for SLP review.",
+      currentStep: "Draft",
+    };
+  }
+
+  const has = (label: string) => missing.includes(label);
+  const parentMissing = has("Parent questionnaire");
+  const teacherMissing = has("Teacher questionnaire");
+  const assessmentsMissing = has("Assessment scores") || has("SLP observations");
+
+  if (parentMissing && teacherMissing) {
+    return {
+      status: "Waiting on parent",
+      missingItems: missing,
+      nextAction: "Send parent and teacher intake forms to collect background.",
+      currentStep: "Parent input",
+    };
+  }
+  if (parentMissing) {
+    return {
+      status: "Waiting on parent",
+      missingItems: missing,
+      nextAction: "Follow up with parent — questionnaire still pending.",
+      currentStep: "Parent input",
+    };
+  }
+  if (teacherMissing) {
+    return {
+      status: "Waiting on teacher",
+      missingItems: missing,
+      nextAction: "Follow up with the classroom teacher — questionnaire still pending.",
+      currentStep: "Teacher input",
+    };
+  }
+  if (assessmentsMissing) {
+    return {
+      status: "Assessment info needed",
+      missingItems: missing,
+      nextAction: "Enter assessment scores and SLP observations.",
+      currentStep: "Assessments",
+    };
+  }
+  return {
+    status: "Intake needed",
+    missingItems: missing,
+    nextAction: "Complete the remaining intake items.",
+    currentStep: "Student info",
+  };
 }
