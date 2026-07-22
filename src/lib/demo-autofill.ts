@@ -4,17 +4,41 @@
 
 export type AutofillValues = Record<string, string | string[]>;
 
-function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
-  const proto = Object.getPrototypeOf(el);
-  const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+function nativeValueSetter(el: HTMLElement) {
+  const proto =
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : el instanceof HTMLSelectElement
+        ? HTMLSelectElement.prototype
+        : HTMLInputElement.prototype;
+  return Object.getOwnPropertyDescriptor(proto, "value")?.set;
+}
+
+function setNativeValue(
+  el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+  value: string,
+) {
+  const setter = nativeValueSetter(el);
   if (setter) setter.call(el, value);
-  else el.value = value;
+  else (el as { value: string }).value = value;
   el.dispatchEvent(new Event("input", { bubbles: true }));
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-export function applyAutofill(form: HTMLFormElement, values: AutofillValues) {
-  const elements = Array.from(form.elements) as Array<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>;
+function setNativeChecked(el: HTMLInputElement, checked: boolean) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "checked")?.set;
+  if (setter) setter.call(el, checked);
+  else el.checked = checked;
+  el.dispatchEvent(new Event("click", { bubbles: true }));
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function applyOnce(form: HTMLFormElement, values: AutofillValues): number {
+  let count = 0;
+  const elements = Array.from(form.elements) as Array<
+    HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+  >;
   for (const el of elements) {
     const name = el.name;
     if (!name || !(name in values)) continue;
@@ -24,15 +48,35 @@ export function applyAutofill(form: HTMLFormElement, values: AutofillValues) {
       const arr = Array.isArray(val) ? val : [val];
       const shouldCheck = arr.includes(el.value);
       if (el.checked !== shouldCheck) {
-        el.checked = shouldCheck;
-        el.dispatchEvent(new Event("change", { bubbles: true }));
+        setNativeChecked(el, shouldCheck);
+        count++;
       }
       continue;
     }
 
     const str = Array.isArray(val) ? val.join(", ") : val;
-    setNativeValue(el, str);
+    if (el.value !== str) {
+      setNativeValue(el, str);
+      count++;
+    }
   }
+  return count;
+}
+
+/**
+ * Apply autofill values to a form. Runs immediately and again on the next
+ * animation frame so uncontrolled inputs settle on the first user click even
+ * if hydration or re-renders would otherwise clobber the initial write.
+ * Returns the number of fields updated on the initial pass.
+ */
+export function applyAutofill(form: HTMLFormElement, values: AutofillValues): number {
+  const count = applyOnce(form, values);
+  const rerun = () => {
+    if (form.isConnected) applyOnce(form, values);
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(rerun);
+  else setTimeout(rerun, 0);
+  return count;
 }
 
 export const parentAutofill: AutofillValues = {
