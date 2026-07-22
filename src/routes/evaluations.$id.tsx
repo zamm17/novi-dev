@@ -365,7 +365,13 @@ function Card({
 }
 
 function copyLink(kind: "parent" | "teacher") {
-  toast.success(`Demo ${kind} link copied.`);
+  const path = kind === "parent" ? "/parent-intake/demo" : "/teacher-intake/demo";
+  const url =
+    typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    void navigator.clipboard.writeText(url).catch(() => {});
+  }
+  toast.success(`Demo ${kind} link copied`, { description: url });
 }
 
 function NextActionPanel({

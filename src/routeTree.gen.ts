@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EvaluationsIdRouteImport } from './routes/evaluations.$id'
 import { Route as ParentIntakeTokenRouteImport } from './routes/parent-intake.$token'
+import { Route as TeacherIntakeTokenRouteImport } from './routes/teacher-intake.$token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,57 @@ const ParentIntakeTokenRoute = ParentIntakeTokenRouteImport.update({
   path: '/parent-intake/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeacherIntakeTokenRoute = TeacherIntakeTokenRouteImport.update({
+  id: '/teacher-intake/$token',
+  path: '/teacher-intake/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/evaluations/$id': typeof EvaluationsIdRoute
   '/parent-intake/$token': typeof ParentIntakeTokenRoute
+  '/teacher-intake/$token': typeof TeacherIntakeTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/evaluations/$id': typeof EvaluationsIdRoute
   '/parent-intake/$token': typeof ParentIntakeTokenRoute
+  '/teacher-intake/$token': typeof TeacherIntakeTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/evaluations/$id': typeof EvaluationsIdRoute
   '/parent-intake/$token': typeof ParentIntakeTokenRoute
+  '/teacher-intake/$token': typeof TeacherIntakeTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/evaluations/$id' | '/parent-intake/$token'
+  fullPaths:
+    | '/'
+    | '/evaluations/$id'
+    | '/parent-intake/$token'
+    | '/teacher-intake/$token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/evaluations/$id' | '/parent-intake/$token'
-  id: '__root__' | '/' | '/evaluations/$id' | '/parent-intake/$token'
+  to:
+    | '/'
+    | '/evaluations/$id'
+    | '/parent-intake/$token'
+    | '/teacher-intake/$token'
+  id:
+    | '__root__'
+    | '/'
+    | '/evaluations/$id'
+    | '/parent-intake/$token'
+    | '/teacher-intake/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EvaluationsIdRoute: typeof EvaluationsIdRoute
   ParentIntakeTokenRoute: typeof ParentIntakeTokenRoute
+  TeacherIntakeTokenRoute: typeof TeacherIntakeTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +105,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentIntakeTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teacher-intake/$token': {
+      id: '/teacher-intake/$token'
+      path: '/teacher-intake/$token'
+      fullPath: '/teacher-intake/$token'
+      preLoaderRoute: typeof TeacherIntakeTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +119,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EvaluationsIdRoute: EvaluationsIdRoute,
   ParentIntakeTokenRoute: ParentIntakeTokenRoute,
+  TeacherIntakeTokenRoute: TeacherIntakeTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
