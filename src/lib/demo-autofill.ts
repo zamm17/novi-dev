@@ -80,27 +80,33 @@ export function applyAutofill(form: HTMLFormElement, values: AutofillValues): nu
   return count;
 }
 
-export const parentAutofill: AutofillValues = {
-  "Q:Parent info > Your name": "Elena Rodriguez",
-  "Q:Parent info > Relationship": "Mother",
+/**
+ * Fictional demo values with the student's first name / last name substituted
+ * in so multiple sample evaluations can autofill sensibly.
+ */
+export function parentAutofill(firstName: string, lastName: string): AutofillValues {
+  const F = firstName;
+  return {
+  "Q:Parent info > Your name": `Parent of ${F}`,
+  "Q:Parent info > Relationship": "Parent / guardian",
   "Q:Parent info > Best way to reach you": "Email",
-  "Q:Parent info > Contact info": "elena.rodriguez@example.com",
+  "Q:Parent info > Contact info": `parent.${F.toLowerCase()}@example.com`,
 
   "Q:Main concerns > Concerns":
-    "Maya is hard to understand when she talks quickly, especially with /r/, /s/, and /th/ sounds.",
-  "Q:Main concerns > When first noticed": "Kindergarten",
+    `${F} is hard to understand when talking quickly, and I've noticed some communication frustration recently.`,
+  "Q:Main concerns > When first noticed": "Around the start of the school year",
   "Q:Main concerns > What to understand":
-    "Maya is aware of her speech errors and sometimes avoids reading aloud.",
+    `${F} is aware of communication difficulties and sometimes hesitates in class as a result.`,
 
   "Q:Child strengths > Communication strengths":
-    "Maya is social, curious, and loves explaining stories and science facts.",
+    `${F} is social, curious, and communicates strongly with familiar family and friends.`,
   "Q:Child strengths > Enjoys":
-    "Drawing, animals, reading graphic novels, and playing soccer.",
+    "Drawing, animals, reading, and active play.",
   "Q:Child strengths > What helps":
-    "Slowing down, visual cues, and reminders to try the sound again.",
+    "Slowing down, visual cues, and patient listeners.",
 
   "Q:Developmental history > First words":
-    "Around 12 months, though I don't remember the exact age.",
+    "Around 12 months — approximate age.",
   "Q:Developmental history > Combining words":
     "Around age 2. Early milestones were generally on time.",
   "Q:Developmental history > Milestones or concerns":
@@ -116,25 +122,24 @@ export const parentAutofill: AutofillValues = {
   "Q:Medical and hearing history > Medications or diagnoses": "None.",
 
   "Q:Language background > Primary language": "English",
-  "Q:Language background > Languages understood": "English, some Spanish",
-  "Q:Language background > Languages spoken": "English, some Spanish",
-  "Q:Language background > Languages with family":
-    "Spanish with grandparents and extended family",
+  "Q:Language background > Languages understood": "English",
+  "Q:Language background > Languages spoken": "English",
+  "Q:Language background > Languages with family": "English at home",
   "Q:Language background > Needs interpreter": "No",
   "Q:Language background > Concerns show up in": "English only",
 
   "Q:Communication at home > Usual communication":
-    "Uses full sentences, tells stories, and asks questions. Sometimes repeats herself when misunderstood.",
+    `${F} uses full sentences and asks questions. Sometimes repeats when misunderstood.`,
   "Q:Communication at home > Easiest":
     "One-on-one conversations at home with familiar family.",
   "Q:Communication at home > Hardest":
-    "Being understood by unfamiliar listeners when she talks quickly.",
+    "Being understood by unfamiliar listeners.",
 
   "Q:School history > Prior evaluations or plans":
     "No prior IEP or 504 plan.",
   "Q:School history > Outside academic support": "None.",
   "Q:School history > Academic concerns":
-    "Teacher has provided reminders and informal speech sound practice.",
+    "Teacher has provided reminders and informal supports.",
   "Q:School history > Attendance / school changes":
     "Regular attendance, no school changes.",
 
@@ -142,25 +147,28 @@ export const parentAutofill: AutofillValues = {
     "No previous speech therapy.",
   "Q:Prior services > Outside services": "None.",
   "Q:Prior services > Helpful strategies":
-    "Slowing down and repeating the word helps her be understood.",
+    "Slowing down and repeating helps a lot.",
 
   "Q:Final notes > Anything else":
-    "Parent would like Maya to feel more confident speaking in class.",
-};
+    `Family would like ${F} ${lastName} to feel more confident participating in class.`,
+  };
+}
 
-export const teacherAutofill: AutofillValues = {
+export function teacherAutofill(firstName: string, lastName: string): AutofillValues {
+  const F = firstName;
+  return {
   "Q:Teacher info > Your name": "Ms. Patel",
   "Q:Teacher info > Role": "General education teacher",
   "Q:Teacher info > Best way to reach you": "Email",
-  "Q:Teacher info > Contact info": "patel@lincoln.example.edu",
+  "Q:Teacher info > Contact info": "patel@example.edu",
 
   "Q:Student strengths > Strengths":
-    "Maya participates, works hard, has strong vocabulary, and is kind with peers.",
+    `${F} participates, works hard, and is kind with peers.`,
   "Q:Student strengths > Successful settings":
     "Small group discussion and partner work.",
 
   "Q:Classroom concerns > Concerns":
-    "Speech sound errors reduce intelligibility, especially during oral reading and fast connected speech.",
+    `Communication difficulties reduce participation during whole-group and unfamiliar-listener contexts.`,
   "Q:Classroom concerns > Settings": [
     "Whole-group instruction",
     "Small group / partner work",
@@ -173,7 +181,7 @@ export const teacherAutofill: AutofillValues = {
   "Q:Academic impact > Oral participation": "Often",
   "Q:Academic impact > Following directions": "Sometimes",
   "Q:Academic impact > Other impact":
-    "Peers occasionally ask her to repeat during oral reading.",
+    `Peers occasionally ask ${F} to repeat during oral reading.`,
 
   "Q:Functional communication > Following multi-step oral directions": "Sometimes",
   "Q:Functional communication > Asking for help": "Not a concern",
@@ -188,16 +196,16 @@ export const teacherAutofill: AutofillValues = {
     "Confidence / willingness to participate",
   ],
   "Q:Educational impact > Notes":
-    "Intelligibility is the main barrier to full classroom participation.",
+    `Communication is the main barrier to full classroom participation for ${F}.`,
 
   "Q:Examples > Example 1 — setting": "Oral reading group",
   "Q:Examples > Example 1 — what happened":
-    "Maya produced /s/ and /th/ errors and peers asked her to repeat herself.",
+    `${F} had trouble being understood and peers asked ${F} to repeat.`,
   "Q:Examples > Example 1 — impact":
-    "She lost her place and became quieter for the rest of the activity.",
+    `${F} lost place and became quieter for the rest of the activity.`,
   "Q:Examples > Example 2 — setting": "Science share-out",
   "Q:Examples > Example 2 — what happened":
-    "She spoke quietly after being misunderstood by a peer.",
+    `${F} spoke quietly after being misunderstood by a peer.`,
   "Q:Examples > Example 2 — impact":
     "Reduced participation for the rest of the share-out.",
 
@@ -213,5 +221,6 @@ export const teacherAutofill: AutofillValues = {
   "Q:Domain check > Areas of concern": ["Speech intelligibility"],
 
   "Q:Final notes > Anything else":
-    "Maya is motivated and responds well to gentle correction.",
-};
+    `${F} ${lastName} is motivated and responds well to gentle support.`,
+  };
+}
