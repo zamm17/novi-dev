@@ -1168,12 +1168,16 @@ function DraftTab({
   generatedDraft,
   onGenerate,
   generating,
+  parentSub,
+  teacherSub,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   generatedDraft: DraftSections | null;
   onGenerate: () => void;
   generating: boolean;
+  parentSub: Submission | null;
+  teacherSub: Submission | null;
 }) {
   const ready = isReadyForDraft(ev);
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
@@ -1227,7 +1231,7 @@ function DraftTab({
     );
   }
 
-  const d: DraftSections = generatedDraft ?? buildDraft(ev);
+  const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
   const hasDraftContent = Boolean(generatedDraft || ev.draft);
 
   const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
