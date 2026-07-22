@@ -10,18 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EvaluationsIdRouteImport } from './routes/evaluations.$id'
-import { Route as ParentIntakeTokenRouteImport } from './routes/parent-intake.$token'
 import { Route as TeacherIntakeTokenRouteImport } from './routes/teacher-intake.$token'
+import { Route as ParentIntakeTokenRouteImport } from './routes/parent-intake.$token'
+import { Route as EvaluationsIdRouteImport } from './routes/evaluations.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EvaluationsIdRoute = EvaluationsIdRouteImport.update({
-  id: '/evaluations/$id',
-  path: '/evaluations/$id',
+const TeacherIntakeTokenRoute = TeacherIntakeTokenRouteImport.update({
+  id: '/teacher-intake/$token',
+  path: '/teacher-intake/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ParentIntakeTokenRoute = ParentIntakeTokenRouteImport.update({
@@ -29,9 +29,9 @@ const ParentIntakeTokenRoute = ParentIntakeTokenRouteImport.update({
   path: '/parent-intake/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TeacherIntakeTokenRoute = TeacherIntakeTokenRouteImport.update({
-  id: '/teacher-intake/$token',
-  path: '/teacher-intake/$token',
+const EvaluationsIdRoute = EvaluationsIdRouteImport.update({
+  id: '/evaluations/$id',
+  path: '/evaluations/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -91,11 +91,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/evaluations/$id': {
-      id: '/evaluations/$id'
-      path: '/evaluations/$id'
-      fullPath: '/evaluations/$id'
-      preLoaderRoute: typeof EvaluationsIdRouteImport
+    '/teacher-intake/$token': {
+      id: '/teacher-intake/$token'
+      path: '/teacher-intake/$token'
+      fullPath: '/teacher-intake/$token'
+      preLoaderRoute: typeof TeacherIntakeTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/parent-intake/$token': {
@@ -105,11 +105,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParentIntakeTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/teacher-intake/$token': {
-      id: '/teacher-intake/$token'
-      path: '/teacher-intake/$token'
-      fullPath: '/teacher-intake/$token'
-      preLoaderRoute: typeof TeacherIntakeTokenRouteImport
+    '/evaluations/$id': {
+      id: '/evaluations/$id'
+      path: '/evaluations/$id'
+      fullPath: '/evaluations/$id'
+      preLoaderRoute: typeof EvaluationsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
