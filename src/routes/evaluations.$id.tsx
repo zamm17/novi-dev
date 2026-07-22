@@ -424,44 +424,67 @@ function NextActionPanel({
     icon: React.ReactNode;
     why: string;
     onClick: () => void;
+    variant?: "primary" | "secondary";
   };
 
-  let action: ActionSpec;
+  let actions: ActionSpec[];
   switch (ev.status) {
-    case "Missing information":
-      action = {
+    case "Missing information": {
+      const parentAction: ActionSpec = {
         label: "Copy parent link",
         icon: <Copy className="h-4 w-4" />,
-        why: "Multiple required items are missing. Start by sharing intake links with the parent and teacher.",
+        why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
         onClick: () => copyLink("parent"),
       };
+      const teacherAction: ActionSpec = {
+        label: "Copy teacher link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
+        onClick: () => copyLink("teacher"),
+        variant: "secondary",
+      };
+      actions = [];
+      if (!ev.parent.submitted) actions.push(parentAction);
+      if (!ev.teacher.submitted) actions.push({
+        ...teacherAction,
+        variant: actions.length === 0 ? "primary" : "secondary",
+      });
+      if (actions.length === 0) {
+        actions = [{
+          label: "Open student details",
+          icon: <ArrowRight className="h-4 w-4" />,
+          why: "Multiple required items are missing. Complete intake to unlock the rest of the workflow.",
+          onClick: () => setTab("Student Details"),
+        }];
+      }
       break;
+    }
     case "Waiting on parent":
-      action = {
+      actions = [{
         label: "Copy parent link",
         icon: <Copy className="h-4 w-4" />,
         why: "Parent intake supplies developmental, medical, and home-language history the report requires.",
         onClick: () => copyLink("parent"),
-      };
+      }];
       break;
     case "Waiting on teacher":
-      action = {
+      actions = [{
         label: "Copy teacher link",
         icon: <Copy className="h-4 w-4" />,
         why: "Teacher input describes classroom impact and functional communication — key context for eligibility discussion.",
         onClick: () => copyLink("teacher"),
-      };
+      }];
       break;
     case "Assessment info needed":
-      action = {
+      actions = [{
         label: "Go to assessments",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
         onClick: () => setTab("Assessments & Observations"),
-      };
+      }];
       break;
     case "Ready to generate":
-      action = {
+      actions = [{
         label: generating ? "Generating…" : "Generate draft",
         icon: generating ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -470,23 +493,23 @@ function NextActionPanel({
         ),
         why: "All required inputs are present. Novi will assemble an editable draft grounded in this workspace.",
         onClick: onGenerate,
-      };
+      }];
       break;
     case "Draft in review":
-      action = {
+      actions = [{
         label: "Review draft",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Draft sections are ready for SLP review and editing before the eligibility meeting.",
         onClick: () => setTab("AI Draft"),
-      };
+      }];
       break;
     default:
-      action = {
+      actions = [{
         label: "Open student details",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Complete intake to unlock the rest of the workflow.",
         onClick: () => setTab("Student Details"),
-      };
+      }];
   }
 
   return (
@@ -499,16 +522,28 @@ function NextActionPanel({
           <div className="mt-1 text-sm font-medium text-foreground">
             {ev.nextAction}
           </div>
-          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{action.why}</p>
+          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{actions[0].why}</p>
         </div>
-        <button
-          type="button"
-          onClick={action.onClick}
-          disabled={generating}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-        >
-          {action.icon} {action.label}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((a, i) => {
+            const secondary = a.variant === "secondary";
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={a.onClick}
+                disabled={generating}
+                className={
+                  secondary
+                    ? "inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-70"
+                    : "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+                }
+              >
+                {a.icon} {a.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {hasGenerated && ev.status === "Ready to generate" && (
         <p className="mt-2 text-xs text-emerald-700">
