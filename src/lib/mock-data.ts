@@ -517,32 +517,3 @@ export function isDueWithinOneWeek(ev: Evaluation, now: Date = new Date()): bool
 }
 
 // (fallthrough guard — kept for clarity if new statuses are added later)
-function _unusedGuard(): EvalStatus {
-  return "Missing information";
-}
-// referenced to avoid unused-warning
-void _unusedGuard;
-
-// Legacy no-op: previous deriveEvaluationState ended with a return; we've
-// restructured above.
-function _legacy() {
-  return {
-    status: "Intake needed" as EvalStatus,
-    missingItems: [] as string[],
-    nextAction: "Complete the remaining intake items.",
-    currentStep: "Student info" as WorkflowStep,
-  };
-}
-void _legacy;
-
-function __removed_placeholder__() {
-  if (false) {
-    return {
-      status: "Intake needed" as EvalStatus,
-      missingItems: [] as string[],
-      nextAction: "Complete the remaining intake items.",
-      currentStep: "Student info" as WorkflowStep,
-    };
-  }
-}
-void __removed_placeholder__;
