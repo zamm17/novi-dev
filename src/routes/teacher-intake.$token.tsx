@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Check, Send, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import {
   PortalShell,
   PortalCard,
@@ -111,7 +112,12 @@ function TeacherIntakePage() {
           <button
             type="button"
             onClick={() => {
-              if (formRef.current) applyAutofill(formRef.current, teacherAutofill);
+              if (formRef.current) {
+                const n = applyAutofill(formRef.current, teacherAutofill);
+                toast.success("Demo responses filled", {
+                  description: `${n} field${n === 1 ? "" : "s"} populated. Review and submit.`,
+                });
+              }
             }}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent"
           >
