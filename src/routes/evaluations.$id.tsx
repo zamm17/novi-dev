@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -1084,8 +1084,14 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function buildDraft(ev: Evaluation): DraftSections {
-  return _buildDraft(ev);
+function buildDraft(
+  ev: Evaluation,
+  parentSub: Submission | null,
+  teacherSub: Submission | null,
+): DraftSections {
+  if (ev.draft) return ev.draft;
+  const payload = buildEvaluationDraftPayload(ev, parentSub, teacherSub);
+  return buildDraftFromPayload(payload);
 }
 
 function ResetDemoButton() {
@@ -1136,26 +1142,6 @@ function SessionResponses({ sub }: { sub: Submission }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function _buildDraft(ev: Evaluation): DraftSections {
-  return (
-    ev.draft ?? {
-      background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
-      reasonForReferral: ev.referralReason,
-      parentInputSummary: ev.parent.concerns ?? "",
-      teacherInputSummary: ev.teacher.classroomConcerns ?? "",
-      assessmentResults: ev.assessments.entries
-        .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
-        .join("\n"),
-      presentLevels: ev.assessments.strengths,
-      interpretation:
-        "Results should be interpreted in the context of parent, teacher, and clinician information. Eligibility is determined by the IEP team.",
-      recommendations:
-        "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
-      summary: `Summary of ${ev.firstName}'s evaluation for team discussion.`,
-    }
   );
 }
 
