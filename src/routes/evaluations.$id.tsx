@@ -561,13 +561,23 @@ function OverviewTab({
       <Card
         title="Parent intake"
         right={
-          <button
-            type="button"
-            onClick={() => copyLink("parent")}
-            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
-          >
-            <Copy className="h-3.5 w-3.5" /> Copy parent link
-          </button>
+          <div className="flex items-center gap-1.5">
+            <Link
+              to="/parent-intake/$token"
+              params={{ token: "demo" }}
+              target="_blank"
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+            >
+              Preview form
+            </Link>
+            <button
+              type="button"
+              onClick={() => copyLink("parent")}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+            >
+              <Copy className="h-3.5 w-3.5" /> Copy parent link
+            </button>
+          </div>
         }
       >
         {ev.parent.submitted ? (
@@ -594,13 +604,23 @@ function OverviewTab({
       <Card
         title="Teacher intake"
         right={
-          <button
-            type="button"
-            onClick={() => copyLink("teacher")}
-            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
-          >
-            <Copy className="h-3.5 w-3.5" /> Copy teacher link
-          </button>
+          <div className="flex items-center gap-1.5">
+            <Link
+              to="/teacher-intake/$token"
+              params={{ token: "demo" }}
+              target="_blank"
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+            >
+              Preview form
+            </Link>
+            <button
+              type="button"
+              onClick={() => copyLink("teacher")}
+              className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs hover:bg-accent"
+            >
+              <Copy className="h-3.5 w-3.5" /> Copy teacher link
+            </button>
+          </div>
         }
       >
         {ev.teacher.submitted ? (
@@ -790,6 +810,16 @@ function PendingIntake({
       >
         <Copy className="h-4 w-4" /> Copy {who.toLowerCase()} link
       </button>
+      <div className="mt-2">
+        <Link
+          to={who === "Parent" ? "/parent-intake/$token" : "/teacher-intake/$token"}
+          params={{ token: "demo" }}
+          target="_blank"
+          className="text-xs font-medium text-primary hover:underline"
+        >
+          Preview {who.toLowerCase()} form →
+        </Link>
+      </div>
       {blockers.length > 0 && (
         <div className="mx-auto mt-4 max-w-md rounded-md bg-muted p-3 text-left text-xs text-muted-foreground">
           <div className="font-medium text-foreground">May block in the report:</div>
