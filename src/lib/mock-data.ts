@@ -373,24 +373,38 @@ export const evaluations: Evaluation[] = [
         "Language difficulties are affecting written narratives, story comprehension, and oral participation in ELA.",
     },
     draft: {
-      background:
-        "Aiyana Begay is a 7-year-old first-grade student at Lincoln Elementary referred for an initial speech-language evaluation due to concerns with expressive language and narrative retell.",
+      evaluationInformation:
+        "Student: Aiyana Begay. Grade: 1st. School: Lincoln Elementary. DOB: 2018-07-30. Evaluation type: Initial — Language. Consent received: 2026-05-28. Due date: 2026-07-30.",
       reasonForReferral:
         "Referral was initiated by the classroom teacher based on concerns about narrative organization, sentence formulation, and impact on written expression in ELA.",
+      sourcesOfData:
+        "Parent questionnaire (2026-06-05); teacher questionnaire (2026-06-08); standardized assessments (CELF-5 Core Language, TNL-2 Narrative Language); SLP observations during testing sessions; review of classroom writing samples provided by the teacher.",
+      backgroundAndHistory:
+        "Aiyana is a 7-year-old first-grade student at Lincoln Elementary. Parent reports first words around 15 months and sentences by 3 years. Medical history unremarkable. English is the only language spoken at home. No prior speech-language services.",
       parentInputSummary:
-        "Parent reports Aiyana struggles to share about her day in an organized way and often leaves out details. Developmental and medical history are unremarkable. English is the only language spoken at home.",
+        "Parent reports Aiyana struggles to share about her day in an organized way and often leaves out key details. Parent notes no concerns with articulation, hearing, or social interaction.",
       teacherInputSummary:
         "Teacher reports weaknesses in narrative retell, simple sentence structures relative to peers, and reduced participation in ELA discussions. Story maps, sentence expansion, and picture supports have been trialed with limited generalization.",
+      behavioralObservations:
+        "Aiyana was cooperative and engaged throughout testing. She responded to verbal cues and accepted repetition and rephrasing. She required prompting to expand narrative responses and occasionally paused mid-sentence when formulating longer utterances.",
+      testingConditionsAndValidity:
+        "Testing was completed in a quiet room with breaks as needed. Based on observed engagement and consistent response patterns, results appear to be a valid representation of Aiyana's current language skills. English is her home and school language; no bilingual considerations apply.",
       assessmentResults:
-        "CELF-5 Core Language: SS 78 (7th percentile). TNL-2 Narrative: SS 76 (5th percentile). Both fall below average with specific weaknesses in Formulated Sentences, Recalling Sentences, and use of story grammar elements.",
+        "CELF-5 Core Language: SS 78 (7th percentile), below average, with specific weaknesses on Formulated Sentences and Recalling Sentences. TNL-2 Narrative Language: SS 76 (5th percentile), with reduced story grammar and limited use of literate language.",
+      speechSoundProfile:
+        "Articulation and phonology are within functional limits. No sound-level errors of concern were observed in connected speech.",
       presentLevels:
         "Aiyana demonstrates age-appropriate articulation, social communication, and receptive vocabulary. She presents with weaknesses in expressive language, particularly narrative organization and sentence formulation.",
+      educationalImpact:
+        "Expressive and narrative language weaknesses affect Aiyana's written narratives, comprehension of story structure, and oral participation during ELA discussions. Teacher-provided classroom supports have shown limited generalization to independent tasks.",
       interpretation:
-        "Results are consistent with a language disorder in the area of expressive/narrative language. Findings are supported by parent, teacher, and standardized assessment data. Eligibility determination is made by the IEP team.",
+        "Results across parent report, teacher report, standardized assessments, and clinician observation are consistent and suggest expressive and narrative language skills that are below age expectations. Findings appear to reflect a language-based need rather than a difference explainable by language exposure or environment.",
+      eligibilityConsiderations:
+        "The information gathered may support the IEP team's consideration of eligibility under the speech/language impairment category, given consistent below-average performance and documented educational impact. Eligibility is determined by the IEP team, not by this draft.",
       recommendations:
-        "The IEP team should consider Aiyana's need for specially designed instruction in expressive and narrative language. Suggested targets include story grammar, sentence formulation, and organized retell using visual scaffolds.",
+        "The IEP team should consider Aiyana's need for specially designed instruction in expressive and narrative language. Suggested targets include story grammar elements, sentence formulation with expansion, and organized retell using visual scaffolds. Classroom supports may include sentence starters, story maps, and structured opportunities for oral retell. Encourage carryover through partner retells and shared writing.",
       summary:
-        "Aiyana is a 7-year-old first grader with expressive/narrative language difficulties impacting classroom performance. Comprehensive evaluation data supports the IEP team's consideration of eligibility and services.",
+        "Aiyana is a 7-year-old first grader with expressive and narrative language difficulties that impact classroom writing, story comprehension, and oral participation. Comprehensive evaluation data supports the IEP team's consideration of eligibility and appropriate services.",
     },
   },
 ];
