@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Sparkles, ArrowRight } from "lucide-react";
 import {
   PortalShell,
@@ -12,6 +12,7 @@ import {
   CheckboxRow,
 } from "@/components/novi/PortalShell";
 import { saveParentSubmission, serializeIntakeForm } from "@/lib/demo-store";
+import { applyAutofill, parentAutofill } from "@/lib/demo-autofill";
 
 export const Route = createFileRoute("/parent-intake/$token")({
   head: () => ({
@@ -42,6 +43,7 @@ const student = {
 
 function ParentIntakePage() {
   const [submitted, setSubmitted] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   if (submitted) {
     return (
@@ -95,6 +97,7 @@ function ParentIntakePage() {
       </div>
 
       <form
+        ref={formRef}
         className="mt-6 space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
@@ -104,6 +107,19 @@ function ParentIntakePage() {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       >
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (formRef.current) applyAutofill(formRef.current, parentAutofill);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-accent"
+          >
+            Autofill demo responses
+          </button>
+          <span className="text-[11px] text-muted-foreground">For prototype testing only.</span>
+        </div>
+
         <PortalCard step={1} title="Parent / guardian info">
           <div className="grid gap-3 md:grid-cols-2">
             <Field label={<>Your name <Required /></>}>
