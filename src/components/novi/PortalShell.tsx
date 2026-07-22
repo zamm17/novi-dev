@@ -97,31 +97,52 @@ export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 export function CheckboxRow({
   label,
   name,
+  value,
 }: {
   label: string;
   name?: string;
+  value?: string;
 }) {
   return (
     <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent">
-      <input type="checkbox" name={name} className="h-4 w-4 rounded border-input" />
+      <input
+        type="checkbox"
+        name={name}
+        value={value ?? label}
+        className="h-4 w-4 rounded border-input"
+      />
       <span>{label}</span>
     </label>
   );
 }
 
-export function FrequencyRow({ label }: { label: string }) {
-  const opts = ["Not a concern", "Sometimes", "Often", "Significant"] as const;
-  const name = label.replace(/\s+/g, "-").toLowerCase();
+export function FrequencyRow({
+  label,
+  name,
+  options,
+}: {
+  label: string;
+  name?: string;
+  options?: readonly string[];
+}) {
+  const opts = options ?? [
+    "Not observed / N/A",
+    "Not a concern",
+    "Sometimes",
+    "Often",
+    "Significant concern",
+  ];
+  const inputName = name ?? label.replace(/\s+/g, "-").toLowerCase();
   return (
     <div className="rounded-md border border-border bg-background p-3">
       <div className="text-sm font-medium">{label}</div>
-      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-5">
         {opts.map((o) => (
           <label
             key={o}
             className="flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-accent"
           >
-            <input type="radio" name={name} className="h-3.5 w-3.5" />
+            <input type="radio" name={inputName} value={o} className="h-3.5 w-3.5" />
             <span>{o}</span>
           </label>
         ))}
