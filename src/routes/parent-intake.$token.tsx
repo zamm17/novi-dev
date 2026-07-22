@@ -12,8 +12,13 @@ import {
   Required,
   CheckboxRow,
 } from "@/components/novi/PortalShell";
-import { saveParentSubmission, serializeIntakeForm } from "@/lib/demo-store";
+import {
+  resolveEvalIdFromToken,
+  saveParentSubmission,
+  serializeIntakeForm,
+} from "@/lib/demo-store";
 import { applyAutofill, parentAutofill } from "@/lib/demo-autofill";
+import { getEvaluation } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/parent-intake/$token")({
   head: () => ({
@@ -34,15 +39,20 @@ export const Route = createFileRoute("/parent-intake/$token")({
   component: ParentIntakePage,
 });
 
-const student = {
-  name: "Maya Rodriguez",
-  grade: "2nd",
-  school: "Lincoln Elementary",
-  slp: "Rachel Smith, M.S., CCC-SLP",
-  evaluationType: "Initial speech-language evaluation",
-};
+const SLP_NAME = "Rachel Smith, M.S., CCC-SLP";
 
 function ParentIntakePage() {
+  const { token } = Route.useParams();
+  const evalId = resolveEvalIdFromToken(token);
+  const ev = getEvaluation(evalId)!;
+  const student = {
+    name: `${ev.firstName} ${ev.lastName}`,
+    firstName: ev.firstName,
+    grade: ev.grade,
+    school: ev.school,
+    slp: SLP_NAME,
+    evaluationType: ev.evaluationType,
+  };
   const [submitted, setSubmitted] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -63,7 +73,7 @@ function ParentIntakePage() {
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link
               to="/evaluations/$id"
-              params={{ id: "ev-001" }}
+              params={{ id: evalId }}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Back to demo workspace <ArrowRight className="h-4 w-4" />
@@ -103,7 +113,7 @@ function ParentIntakePage() {
         onSubmit={(e) => {
           e.preventDefault();
           const fields = serializeIntakeForm(e.currentTarget);
-          saveParentSubmission(fields);
+          saveParentSubmission(evalId, fields);
           setSubmitted(true);
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
@@ -113,7 +123,10 @@ function ParentIntakePage() {
             type="button"
             onClick={() => {
               if (formRef.current) {
-                const n = applyAutofill(formRef.current, parentAutofill);
+                const n = applyAutofill(
+                  formRef.current,
+                  parentAutofill(student.firstName, ev.lastName),
+                );
                 toast.success("Demo responses filled", {
                   description: `${n} field${n === 1 ? "" : "s"} populated. Review and submit.`,
                 });
