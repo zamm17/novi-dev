@@ -51,11 +51,11 @@ function ParentIntakePage() {
             <Check className="h-6 w-6" />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-emerald-900">
-            Thank you. Your responses have been submitted to the SLP.
+            Thanks — your responses were saved for this demo.
           </h2>
           <p className="mt-2 text-sm text-emerald-800">
-            {student.slp} will review your input as part of {student.name}'s evaluation.
-            You don't need to do anything else right now.
+            In this demo, {student.name}'s SLP workspace has been updated in this browser
+            session. In the real product, responses would be securely shared with {student.slp}.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link
