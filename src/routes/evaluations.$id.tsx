@@ -1323,6 +1323,12 @@ function DraftTab({
             )}{" "}
             {generating ? "Generating…" : "Generate draft"}
           </button>
+          <p className="mt-3 text-[11px] text-emerald-900/60">
+            {hasSupabaseDraftConfig()
+              ? "AI connection: Supabase config detected"
+              : "AI connection: Supabase config missing"}{" "}
+            · prototype-only
+          </p>
         </div>
       </Card>
     );
