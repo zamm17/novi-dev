@@ -28,15 +28,20 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   const evaluations = useDemoEvaluations();
   const active = evaluations.length;
-  const waitingParent = evaluations.filter((e) => e.status === "Waiting on parent").length;
-  const waitingTeacher = evaluations.filter((e) => e.status === "Waiting on teacher").length;
+  const missingInfo = evaluations.filter(
+    (e) =>
+      e.status === "Missing information" ||
+      e.status === "Waiting on parent" ||
+      e.status === "Waiting on teacher",
+  ).length;
+  const assessmentInfo = evaluations.filter((e) => e.status === "Assessment info needed").length;
   const ready = evaluations.filter((e) => e.status === "Ready to generate").length;
   const inReview = evaluations.filter((e) => e.status === "Draft in review").length;
 
   const stats = [
     { label: "Active evaluations", value: active, tone: "text-foreground" },
-    { label: "Waiting on parent", value: waitingParent, tone: "text-amber-700" },
-    { label: "Waiting on teacher", value: waitingTeacher, tone: "text-amber-700" },
+    { label: "Missing information", value: missingInfo, tone: "text-rose-700" },
+    { label: "Assessment info needed", value: assessmentInfo, tone: "text-amber-700" },
     { label: "Ready to generate", value: ready, tone: "text-emerald-700" },
     { label: "Drafts in review", value: inReview, tone: "text-indigo-700" },
   ];
@@ -190,6 +195,25 @@ function IntakeRowAction({ kind }: { kind: "parent" | "teacher" }) {
 
 function RowAction({ ev }: { ev: Evaluation }) {
   switch (ev.status) {
+    case "Missing information":
+      return (
+        <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => copyIntakeLink("parent")}
+            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
+          >
+            <Copy className="h-3.5 w-3.5" /> Parent
+          </button>
+          <button
+            type="button"
+            onClick={() => copyIntakeLink("teacher")}
+            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
+          >
+            <Copy className="h-3.5 w-3.5" /> Teacher
+          </button>
+        </div>
+      );
     case "Waiting on parent":
       return <IntakeRowAction kind="parent" />;
     case "Waiting on teacher":
