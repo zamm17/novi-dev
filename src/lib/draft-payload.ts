@@ -233,9 +233,17 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
     ? observations.slpObservations
     : MISSING;
 
-  const testingConditionsAndValidity = observations.slpObservations
-    ? "Based on available SLP observations, results appear to be a valid representation of the student's current skills. The SLP should confirm testing conditions and note any cultural or linguistic considerations."
-    : "SLP review required to confirm testing conditions and validity of results.";
+  const validityParts: string[] = [];
+  if (observations.slpObservations) {
+    validityParts.push(
+      "Based on available SLP observations, results appear to be a valid representation of the student's current skills, pending SLP confirmation of testing conditions and any cultural or linguistic considerations.",
+    );
+  } else {
+    validityParts.push("SLP review required to confirm testing conditions and validity of results.");
+  }
+  if (observations.hearing) validityParts.push(`Hearing context: ${observations.hearing}`);
+  if (observations.oralMotor) validityParts.push(`Oral-motor context: ${observations.oralMotor}`);
+  const testingConditionsAndValidity = validityParts.join(" ");
 
   const bilingual = /\//.test(student.primaryLanguage) || /spanish|vietnamese|bilingual/i.test(student.primaryLanguage);
   const speechSoundProfile = (() => {
