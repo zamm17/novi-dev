@@ -13,8 +13,13 @@ import {
   CheckboxRow,
   FrequencyRow,
 } from "@/components/novi/PortalShell";
-import { saveTeacherSubmission, serializeIntakeForm } from "@/lib/demo-store";
+import {
+  resolveEvalIdFromToken,
+  saveTeacherSubmission,
+  serializeIntakeForm,
+} from "@/lib/demo-store";
 import { applyAutofill, teacherAutofill } from "@/lib/demo-autofill";
+import { getEvaluation } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/teacher-intake/$token")({
   head: () => ({
@@ -35,14 +40,19 @@ export const Route = createFileRoute("/teacher-intake/$token")({
   component: TeacherIntakePage,
 });
 
-const student = {
-  name: "Maya Rodriguez",
-  grade: "2nd",
-  school: "Lincoln Elementary",
-  slp: "Rachel Smith, M.S., CCC-SLP",
-};
+const SLP_NAME = "Rachel Smith, M.S., CCC-SLP";
 
 function TeacherIntakePage() {
+  const { token } = Route.useParams();
+  const evalId = resolveEvalIdFromToken(token);
+  const ev = getEvaluation(evalId)!;
+  const student = {
+    name: `${ev.firstName} ${ev.lastName}`,
+    firstName: ev.firstName,
+    grade: ev.grade,
+    school: ev.school,
+    slp: SLP_NAME,
+  };
   const [submitted, setSubmitted] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -64,7 +74,7 @@ function TeacherIntakePage() {
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link
               to="/evaluations/$id"
-              params={{ id: "ev-001" }}
+              params={{ id: evalId }}
               className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Back to demo workspace <ArrowRight className="h-4 w-4" />
@@ -103,7 +113,7 @@ function TeacherIntakePage() {
         onSubmit={(e) => {
           e.preventDefault();
           const fields = serializeIntakeForm(e.currentTarget);
-          saveTeacherSubmission(fields);
+          saveTeacherSubmission(evalId, fields);
           setSubmitted(true);
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
@@ -113,7 +123,10 @@ function TeacherIntakePage() {
             type="button"
             onClick={() => {
               if (formRef.current) {
-                const n = applyAutofill(formRef.current, teacherAutofill);
+                const n = applyAutofill(
+                  formRef.current,
+                  teacherAutofill(student.firstName, ev.lastName),
+                );
                 toast.success("Demo responses filled", {
                   description: `${n} field${n === 1 ? "" : "s"} populated. Review and submit.`,
                 });
