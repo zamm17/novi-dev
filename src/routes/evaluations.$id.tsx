@@ -34,6 +34,8 @@ import {
   applySubmissionsToEval,
   groupSubmissionBySection,
   resetDemoData,
+  saveAssessmentSubmission,
+  useAssessmentSubmission,
   useParentSubmission,
   useTeacherSubmission,
   useDemoResetVersion,
@@ -117,10 +119,16 @@ function WorkspacePage() {
   const { ev: baseEv } = Route.useLoaderData();
   const parentSub = useParentSubmission(baseEv.id);
   const teacherSub = useTeacherSubmission(baseEv.id);
+  const assessmentSub = useAssessmentSubmission(baseEv.id);
   const resetVersion = useDemoResetVersion();
   const ev = useMemo(
-    () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
-    [baseEv, parentSub, teacherSub],
+    () =>
+      applySubmissionsToEval(baseEv, {
+        parent: parentSub,
+        teacher: teacherSub,
+        assessment: assessmentSub,
+      }),
+    [baseEv, parentSub, teacherSub, assessmentSub],
   );
   const [tab, setTab] = useState<Tab>("Overview");
   const [generating, setGenerating] = useState(false);
