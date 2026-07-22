@@ -1,9 +1,19 @@
 import { useMemo, useSyncExternalStore } from "react";
-import { deriveEvaluationState, evaluations, type Evaluation } from "./mock-data";
+import { deriveEvaluationState, evaluations, getEvaluation, type Evaluation } from "./mock-data";
 
-const PARENT_KEY = "novi.demo.parent.ev-001";
-const TEACHER_KEY = "novi.demo.teacher.ev-001";
 export const DEMO_EVAL_ID = "ev-001";
+const KEY_PREFIX = "novi.demo.";
+const parentKey = (evalId: string) => `${KEY_PREFIX}parent.${evalId}`;
+const teacherKey = (evalId: string) => `${KEY_PREFIX}teacher.${evalId}`;
+
+/**
+ * Resolves an intake token from the URL to a known evaluation id.
+ * Preserves "demo" as an alias for Maya (ev-001).
+ */
+export function resolveEvalIdFromToken(token: string): string {
+  if (token === "demo") return DEMO_EVAL_ID;
+  return getEvaluation(token) ? token : DEMO_EVAL_ID;
+}
 
 export interface SubmittedField {
   name: string; // "Section > Question"
@@ -22,8 +32,8 @@ export interface SubmissionSection {
 
 // ---------- storage cache (stable refs for useSyncExternalStore) ----------
 
-let cachedParent: Submission | null | undefined;
-let cachedTeacher: Submission | null | undefined;
+const cache = new Map<string, Submission | null>();
+let version = 0;
 let resetVersion = 0;
 
 function readKey(key: string): Submission | null {
@@ -36,39 +46,31 @@ function readKey(key: string): Submission | null {
   }
 }
 
-function ensureLoaded() {
-  if (cachedParent === undefined) cachedParent = readKey(PARENT_KEY);
-  if (cachedTeacher === undefined) cachedTeacher = readKey(TEACHER_KEY);
+function getFromCache(key: string): Submission | null {
+  if (!cache.has(key)) cache.set(key, readKey(key));
+  return cache.get(key) ?? null;
 }
 
-function getParentSnapshot(): Submission | null {
-  ensureLoaded();
-  return cachedParent ?? null;
-}
-function getTeacherSnapshot(): Submission | null {
-  ensureLoaded();
-  return cachedTeacher ?? null;
+function getVersion(): number {
+  return version;
 }
 function getResetVersion(): number {
   return resetVersion;
 }
-function getServerSnapshot(): Submission | null {
-  return null;
-}
-function getResetServerSnapshot(): number {
+function serverZero(): number {
   return 0;
 }
 
 const listeners = new Set<() => void>();
 function emit() {
+  version += 1;
   listeners.forEach((l) => l());
 }
 function subscribe(l: () => void) {
   listeners.add(l);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === PARENT_KEY || e.key === TEACHER_KEY || e.key === null) {
-      cachedParent = undefined;
-      cachedTeacher = undefined;
+    if (e.key === null || e.key.startsWith(KEY_PREFIX)) {
+      cache.clear();
       emit();
     }
   };
@@ -81,35 +83,52 @@ function subscribe(l: () => void) {
 
 // ---------- public API ----------
 
-export function saveParentSubmission(fields: SubmittedField[]) {
+export function saveParentSubmission(evalId: string, fields: SubmittedField[]) {
   const sub: Submission = { submittedAt: new Date().toISOString(), fields };
-  window.localStorage.setItem(PARENT_KEY, JSON.stringify(sub));
-  cachedParent = sub;
+  const key = parentKey(evalId);
+  window.localStorage.setItem(key, JSON.stringify(sub));
+  cache.set(key, sub);
   emit();
 }
 
-export function saveTeacherSubmission(fields: SubmittedField[]) {
+export function saveTeacherSubmission(evalId: string, fields: SubmittedField[]) {
   const sub: Submission = { submittedAt: new Date().toISOString(), fields };
-  window.localStorage.setItem(TEACHER_KEY, JSON.stringify(sub));
-  cachedTeacher = sub;
+  const key = teacherKey(evalId);
+  window.localStorage.setItem(key, JSON.stringify(sub));
+  cache.set(key, sub);
   emit();
 }
 
 export function resetDemoData() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(PARENT_KEY);
-  window.localStorage.removeItem(TEACHER_KEY);
-  cachedParent = null;
-  cachedTeacher = null;
+  // Clear every submission key we own, for every known evaluation and any
+  // legacy keys still lingering from earlier demo sessions.
+  const keysToRemove = new Set<string>();
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(KEY_PREFIX)) keysToRemove.add(k);
+    }
+  } catch {
+    // ignore
+  }
+  for (const ev of evaluations) {
+    keysToRemove.add(parentKey(ev.id));
+    keysToRemove.add(teacherKey(ev.id));
+  }
+  keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+  cache.clear();
   resetVersion += 1;
   emit();
 }
 
-export function useParentSubmission() {
-  return useSyncExternalStore(subscribe, getParentSnapshot, getServerSnapshot);
+export function useParentSubmission(evalId: string): Submission | null {
+  const v = useSyncExternalStore(subscribe, getVersion, serverZero);
+  return useMemo(() => getFromCache(parentKey(evalId)), [evalId, v]);
 }
-export function useTeacherSubmission() {
-  return useSyncExternalStore(subscribe, getTeacherSnapshot, getServerSnapshot);
+export function useTeacherSubmission(evalId: string): Submission | null {
+  const v = useSyncExternalStore(subscribe, getVersion, serverZero);
+  return useMemo(() => getFromCache(teacherKey(evalId)), [evalId, v]);
 }
 
 /**
@@ -118,20 +137,25 @@ export function useTeacherSubmission() {
  * (e.g. generated drafts held only in React state).
  */
 export function useDemoResetVersion() {
-  return useSyncExternalStore(subscribe, getResetVersion, getResetServerSnapshot);
+  return useSyncExternalStore(subscribe, getResetVersion, serverZero);
 }
 
 /**
  * All evaluations with any locally-submitted parent/teacher intake applied
- * to the demo student (ev-001). Keeps the dashboard consistent with the
- * workspace.
+ * to that specific student. Every sample evaluation is independently
+ * updatable so multiple demo scenarios work.
  */
 export function useDemoEvaluations(): Evaluation[] {
-  const parent = useParentSubmission();
-  const teacher = useTeacherSubmission();
+  const v = useSyncExternalStore(subscribe, getVersion, serverZero);
   return useMemo(
-    () => evaluations.map((e) => applySubmissionsToEval(e, { parent, teacher })),
-    [parent, teacher],
+    () =>
+      evaluations.map((e) =>
+        applySubmissionsToEval(e, {
+          parent: getFromCache(parentKey(e.id)),
+          teacher: getFromCache(teacherKey(e.id)),
+        }),
+      ),
+    [v],
   );
 }
 
@@ -189,7 +213,6 @@ export function applySubmissionsToEval(
   ev: Evaluation,
   subs: { parent: Submission | null; teacher: Submission | null },
 ): Evaluation {
-  if (ev.id !== DEMO_EVAL_ID) return ev;
   let next = ev;
   if (subs.parent) {
     next = {
