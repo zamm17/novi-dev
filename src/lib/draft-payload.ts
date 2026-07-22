@@ -247,18 +247,21 @@ export function buildDraftFromPayload(p: EvaluationDraftPayload): DraftSections 
 
   const bilingual = /\//.test(student.primaryLanguage) || /spanish|vietnamese|bilingual/i.test(student.primaryLanguage);
   const speechSoundProfile = (() => {
-    const hasArticEntry = assessments.some((a) => /GFTA|articulation|sounds/i.test(a.name));
-    if (!hasArticEntry) return "No articulation-specific assessment data provided. SLP review required if a speech sound profile is relevant.";
-    const notes = assessments
-      .filter((a) => /GFTA|articulation|sounds/i.test(a.name))
-      .map((a) => a.notes)
+    const articNotes = assessments
+      .filter((a) => /GFTA|articulation|sounds|phonolog/i.test(a.name))
+      .map((a) => `${a.name}: ${a.notes}`)
       .filter(Boolean)
       .join(" ");
-    return [
-      "Speech sound profile based on available data:",
-      notes,
-      bilingual ? "Bilingual/linguistic context should be considered; additional information may be needed to distinguish difference from disorder." : "",
-    ].filter(Boolean).join(" ");
+    const parts: string[] = [];
+    if (observations.speechSoundProfile) parts.push(observations.speechSoundProfile);
+    if (articNotes) parts.push(articNotes);
+    if (!parts.length) {
+      return "No articulation-specific assessment data or speech sound profile provided. SLP review required if a speech sound profile is relevant.";
+    }
+    if (bilingual) {
+      parts.push("Bilingual/linguistic context should be considered; additional information may be needed to distinguish difference from disorder.");
+    }
+    return parts.join(" ");
   })();
 
   const educationalImpact = observations.educationalImpact || MISSING;
