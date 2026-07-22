@@ -873,38 +873,93 @@ function TeacherTab({ ev }: { ev: Evaluation }) {
 }
 
 function AssessmentsTab({ ev }: { ev: Evaluation }) {
-  const hasEntries = ev.assessments.entries.length > 0;
+  const [entries, setEntries] = useState<AssessmentEntry[]>(ev.assessments.entries);
+
+  const updateEntry = (i: number, patch: Partial<AssessmentEntry>) => {
+    setEntries((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+  };
+  const removeEntry = (i: number) => {
+    setEntries((prev) => prev.filter((_, idx) => idx !== i));
+  };
+  const addEntry = () => {
+    setEntries((prev) => [
+      ...prev,
+      { name: "", standardScore: "", percentile: "", notes: "" },
+    ]);
+  };
+
   return (
     <div className="space-y-4">
-      <Card title="Assessment scores">
-        {hasEntries ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="py-2 pr-3 font-medium">Assessment</th>
-                  <th className="py-2 pr-3 font-medium">Standard score</th>
-                  <th className="py-2 pr-3 font-medium">Percentile</th>
-                  <th className="py-2 font-medium">Notes / interpretation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ev.assessments.entries.map((a, i) => (
-                  <tr key={i} className="border-b border-border last:border-0 align-top">
-                    <td className="py-2 pr-3 font-medium">{a.name}</td>
-                    <td className="py-2 pr-3">{a.standardScore}</td>
-                    <td className="py-2 pr-3">{a.percentile}</td>
-                    <td className="py-2 text-muted-foreground">{a.notes}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
+      <Card
+        title="Assessment scores"
+        right={
+          <button
+            type="button"
+            onClick={addEntry}
+            className="inline-flex items-center gap-1 rounded-md border border-input px-2 py-1 text-xs font-medium hover:bg-accent"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add assessment
+          </button>
+        }
+      >
+        {entries.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
             <Info className="mr-1 inline h-4 w-4" />
-            No assessment scores entered yet. Add scores here — a draft can't be generated without
-            them.
+            No assessment scores entered yet. Add scores here — a draft can't be generated
+            without them.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map((a, i) => (
+              <div
+                key={i}
+                className="grid gap-2 rounded-md border border-border bg-background/40 p-3 md:grid-cols-[2fr_1fr_1fr_3fr_auto]"
+              >
+                <input
+                  value={a.name}
+                  onChange={(e) => updateEntry(i, { name: e.target.value })}
+                  placeholder="CELF-5 Core Language"
+                  aria-label="Assessment name"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none ring-ring/40 focus:ring-2"
+                />
+                <input
+                  value={a.standardScore}
+                  onChange={(e) => updateEntry(i, { standardScore: e.target.value })}
+                  placeholder="85"
+                  aria-label="Standard score"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none ring-ring/40 focus:ring-2"
+                />
+                <input
+                  value={a.percentile}
+                  onChange={(e) => updateEntry(i, { percentile: e.target.value })}
+                  placeholder="16"
+                  aria-label="Percentile"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none ring-ring/40 focus:ring-2"
+                />
+                <input
+                  value={a.notes}
+                  onChange={(e) => updateEntry(i, { notes: e.target.value })}
+                  placeholder="Brief interpretation notes for the report"
+                  aria-label="Notes"
+                  className="h-9 rounded-md border border-input bg-background px-2 text-sm outline-none ring-ring/40 focus:ring-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeEntry(i)}
+                  aria-label="Remove assessment"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addEntry}
+              className="inline-flex items-center gap-1 rounded-md border border-dashed border-input px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add another assessment
+            </button>
           </div>
         )}
       </Card>
@@ -943,7 +998,56 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function DraftTab({ ev }: { ev: Evaluation }) {
+function buildDraft(ev: Evaluation): DraftSections {
+  return (
+    ev.draft ?? {
+      background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
+      reasonForReferral: ev.referralReason,
+      parentInputSummary: ev.parent.concerns ?? "",
+      teacherInputSummary: ev.teacher.classroomConcerns ?? "",
+      assessmentResults: ev.assessments.entries
+        .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
+        .join("\n"),
+      presentLevels: ev.assessments.strengths,
+      interpretation:
+        "Results should be interpreted in the context of parent, teacher, and clinician information. Eligibility is determined by the IEP team.",
+      recommendations:
+        "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
+      summary: `Summary of ${ev.firstName}'s evaluation for team discussion.`,
+    }
+  );
+}
+
+const draftSectionSources: Record<keyof DraftSections, string[]> = {
+  background: ["Parent intake", "Student details"],
+  reasonForReferral: ["Referral reason", "Teacher input"],
+  parentInputSummary: ["Parent intake"],
+  teacherInputSummary: ["Teacher input"],
+  assessmentResults: ["Assessment scores"],
+  presentLevels: ["Assessment scores", "SLP observations", "Teacher input"],
+  interpretation: [
+    "Assessment scores",
+    "Parent intake",
+    "Teacher input",
+    "SLP observations",
+  ],
+  recommendations: ["SLP observations", "Educational impact"],
+  summary: ["All required inputs"],
+};
+
+function DraftTab({
+  ev,
+  setTab,
+  generatedDraft,
+  onGenerate,
+  generating,
+}: {
+  ev: Evaluation;
+  setTab: (t: Tab) => void;
+  generatedDraft: DraftSections | null;
+  onGenerate: () => void;
+  generating: boolean;
+}) {
   const ready = isReadyForDraft(ev);
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
 
@@ -962,10 +1066,32 @@ function DraftTab({ ev }: { ev: Evaluation }) {
                 draft. Novi never makes eligibility decisions — the SLP remains the decision
                 maker.
               </p>
-              <ul className="mt-3 list-disc space-y-0.5 pl-5 text-sm text-rose-900">
-                {missing.map((m) => (
-                  <li key={m.label}>{m.label}</li>
-                ))}
+              <ul className="mt-3 space-y-2 text-sm">
+                {missing.map((m) => {
+                  const meta = missingItemMeta[m.label];
+                  return (
+                    <li
+                      key={m.label}
+                      className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-rose-200 bg-white p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium text-foreground">{m.label}</div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {meta?.why ?? "Required for a complete draft."}
+                        </p>
+                      </div>
+                      {meta && (
+                        <button
+                          type="button"
+                          onClick={() => setTab(meta.tab)}
+                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+                        >
+                          {meta.action} <ArrowRight className="h-3 w-3" />
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
@@ -974,23 +1100,10 @@ function DraftTab({ ev }: { ev: Evaluation }) {
     );
   }
 
-  const d = ev.draft ?? {
-    background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
-    reasonForReferral: ev.referralReason,
-    parentInputSummary: ev.parent.concerns ?? "",
-    teacherInputSummary: ev.teacher.classroomConcerns ?? "",
-    assessmentResults: ev.assessments.entries
-      .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
-      .join("\n"),
-    presentLevels: ev.assessments.strengths,
-    interpretation:
-      "Results should be interpreted in the context of parent, teacher, and clinician information. Eligibility is determined by the IEP team.",
-    recommendations:
-      "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
-    summary: `Summary of ${ev.firstName}'s evaluation for team discussion.`,
-  };
+  const d: DraftSections = generatedDraft ?? buildDraft(ev);
+  const hasDraftContent = Boolean(generatedDraft || ev.draft);
 
-  const sections: { key: keyof typeof d; label: string; rows?: number }[] = [
+  const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
     { key: "background", label: "Background" },
     { key: "reasonForReferral", label: "Reason for referral" },
     { key: "parentInputSummary", label: "Parent input summary", rows: 4 },
@@ -1014,11 +1127,29 @@ function DraftTab({ ev }: { ev: Evaluation }) {
             <p className="mt-1 text-muted-foreground">
               Every section is editable. Novi does not determine eligibility.
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Draft sections are based only on the information visible in this workspace.
+            </p>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {!hasDraftContent ? (
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}{" "}
+            {generating ? "Generating…" : "Generate draft"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => toast.success("Draft saved (demo).")}
@@ -1048,20 +1179,37 @@ function DraftTab({ ev }: { ev: Evaluation }) {
       </div>
 
       <div className="space-y-3">
-        {sections.map((s) => (
-          <div key={s.key} className="rounded-lg border border-border bg-card p-4 shadow-sm">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                {s.label}
-              </span>
+        {sections.map((s) => {
+          const sources = draftSectionSources[s.key];
+          return (
+            <div key={s.key} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {s.label}
+                </span>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Sources
+                  </span>
+                  {sources.map((src) => (
+                    <span
+                      key={src}
+                      className="rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                    >
+                      {src}
+                    </span>
+                  ))}
+                </div>
+              </div>
               <textarea
+                key={(generatedDraft ? "g-" : "s-") + s.key}
                 defaultValue={d[s.key]}
                 rows={s.rows ?? 3}
                 className="w-full rounded-md border border-input bg-background p-2 text-sm outline-none ring-ring/40 focus:ring-2"
               />
-            </label>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
