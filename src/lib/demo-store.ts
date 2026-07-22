@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from "react";
-import type { Evaluation } from "./mock-data";
+import { useMemo, useSyncExternalStore } from "react";
+import { deriveEvaluationState, evaluations, type Evaluation } from "./mock-data";
 
 const PARENT_KEY = "novi.demo.parent.ev-001";
 const TEACHER_KEY = "novi.demo.teacher.ev-001";
@@ -24,6 +24,7 @@ export interface SubmissionSection {
 
 let cachedParent: Submission | null | undefined;
 let cachedTeacher: Submission | null | undefined;
+let resetVersion = 0;
 
 function readKey(key: string): Submission | null {
   if (typeof window === "undefined") return null;
@@ -48,8 +49,14 @@ function getTeacherSnapshot(): Submission | null {
   ensureLoaded();
   return cachedTeacher ?? null;
 }
+function getResetVersion(): number {
+  return resetVersion;
+}
 function getServerSnapshot(): Submission | null {
   return null;
+}
+function getResetServerSnapshot(): number {
+  return 0;
 }
 
 const listeners = new Set<() => void>();
@@ -94,6 +101,7 @@ export function resetDemoData() {
   window.localStorage.removeItem(TEACHER_KEY);
   cachedParent = null;
   cachedTeacher = null;
+  resetVersion += 1;
   emit();
 }
 
@@ -102,6 +110,29 @@ export function useParentSubmission() {
 }
 export function useTeacherSubmission() {
   return useSyncExternalStore(subscribe, getTeacherSnapshot, getServerSnapshot);
+}
+
+/**
+ * Returns a number that increments every time resetDemoData() is called.
+ * Components can use it as an effect key to clear locally-derived state
+ * (e.g. generated drafts held only in React state).
+ */
+export function useDemoResetVersion() {
+  return useSyncExternalStore(subscribe, getResetVersion, getResetServerSnapshot);
+}
+
+/**
+ * All evaluations with any locally-submitted parent/teacher intake applied
+ * to the demo student (ev-001). Keeps the dashboard consistent with the
+ * workspace.
+ */
+export function useDemoEvaluations(): Evaluation[] {
+  const parent = useParentSubmission();
+  const teacher = useTeacherSubmission();
+  return useMemo(
+    () => evaluations.map((e) => applySubmissionsToEval(e, { parent, teacher })),
+    [parent, teacher],
+  );
 }
 
 // ---------- serialization + display helpers ----------
@@ -180,5 +211,6 @@ export function applySubmissionsToEval(
       },
     };
   }
-  return next;
+  const derived = deriveEvaluationState(next);
+  return { ...next, ...derived };
 }
