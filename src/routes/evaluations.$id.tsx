@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Trash2,
   Loader2,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
@@ -29,6 +30,14 @@ import {
   type AssessmentEntry,
   type DraftSections,
 } from "@/lib/mock-data";
+import {
+  applySubmissionsToEval,
+  groupSubmissionBySection,
+  resetDemoData,
+  useParentSubmission,
+  useTeacherSubmission,
+  type Submission,
+} from "@/lib/demo-store";
 
 export const Route = createFileRoute("/evaluations/$id")({
   loader: ({ params }) => {
@@ -100,7 +109,13 @@ const missingItemMeta: Record<
 };
 
 function WorkspacePage() {
-  const { ev } = Route.useLoaderData();
+  const { ev: baseEv } = Route.useLoaderData();
+  const parentSub = useParentSubmission();
+  const teacherSub = useTeacherSubmission();
+  const ev = useMemo(
+    () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
+    [baseEv, parentSub, teacherSub],
+  );
   const [tab, setTab] = useState<Tab>("Overview");
   const [generating, setGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
@@ -140,11 +155,13 @@ function WorkspacePage() {
                   onGenerate={handleGenerate}
                   generating={generating}
                   hasGenerated={Boolean(generatedDraft)}
+                  sessionParent={parentSub}
+                  sessionTeacher={teacherSub}
                 />
               )}
               {tab === "Student Details" && <StudentDetailsTab ev={ev} />}
-              {tab === "Parent Input" && <ParentTab ev={ev} />}
-              {tab === "Teacher Input" && <TeacherTab ev={ev} />}
+              {tab === "Parent Input" && <ParentTab ev={ev} sessionSub={parentSub} />}
+              {tab === "Teacher Input" && <TeacherTab ev={ev} sessionSub={teacherSub} />}
               {tab === "Assessments & Observations" && <AssessmentsTab ev={ev} />}
               {tab === "AI Draft" && (
                 <DraftTab
@@ -164,6 +181,7 @@ function WorkspacePage() {
               Demo prototype using fictional data. Novi assists — the SLP determines eligibility and
               clinical recommendations.
             </div>
+            <ResetDemoButton />
           </aside>
         </div>
       </div>
@@ -535,12 +553,16 @@ function OverviewTab({
   onGenerate,
   generating,
   hasGenerated,
+  sessionParent,
+  sessionTeacher,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   onGenerate: () => void;
   generating: boolean;
   hasGenerated: boolean;
+  sessionParent: Submission | null;
+  sessionTeacher: Submission | null;
 }) {
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
   const ready = missing.length === 0;
@@ -586,7 +608,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.parent.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Parent questionnaire is complete and available in the Parent Input tab.
+              {sessionParent
+                ? "Submitted in this demo session. Available in the Parent Input tab."
+                : "Parent questionnaire is complete and available in the Parent Input tab."}
             </p>
           </div>
         ) : (
@@ -629,7 +653,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.teacher.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Teacher questionnaire is complete and available in the Teacher Input tab.
+              {sessionTeacher
+                ? "Submitted in this demo session. Available in the Teacher Input tab."
+                : "Teacher questionnaire is complete and available in the Teacher Input tab."}
             </p>
           </div>
         ) : (
@@ -834,17 +860,23 @@ function PendingIntake({
   );
 }
 
-function ParentTab({ ev }: { ev: Evaluation }) {
+function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Parent questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.parent.submitted ? `Submitted ${ev.parent.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this demo session · ${ev.parent.submittedDate}`
+            : ev.parent.submitted
+              ? `Submitted ${ev.parent.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.parent.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.parent.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Parent concerns" value={ev.parent.concerns} />
           <IntakeSection label="Developmental history" value={ev.parent.developmentalHistory} />
@@ -871,17 +903,23 @@ function ParentTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function TeacherTab({ ev }: { ev: Evaluation }) {
+function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Teacher questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.teacher.submitted ? `Submitted ${ev.teacher.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this demo session · ${ev.teacher.submittedDate}`
+            : ev.teacher.submitted
+              ? `Submitted ${ev.teacher.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.teacher.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.teacher.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Classroom concerns" value={ev.teacher.classroomConcerns} />
           <IntakeSection label="Academic impact" value={ev.teacher.academicImpact} />
@@ -1035,6 +1073,61 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
 }
 
 function buildDraft(ev: Evaluation): DraftSections {
+  return _buildDraft(ev);
+}
+
+function ResetDemoButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        resetDemoData();
+        toast.success("Demo data reset");
+      }}
+      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-input bg-background px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+    >
+      <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
+    </button>
+  );
+}
+
+function SessionResponses({ sub }: { sub: Submission }) {
+  const sections = groupSubmissionBySection(sub);
+  if (sections.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Submitted, but no free-text answers were provided.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+        Submitted in this demo session. Values below reflect what was entered on the shared
+        questionnaire link.
+      </div>
+      {sections.map((s) => (
+        <div key={s.title} className="rounded-md border border-border bg-background/40 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {s.title}
+          </div>
+          <dl className="mt-2 space-y-2">
+            {s.fields.map((f) => (
+              <div key={f.label} className="text-sm">
+                <dt className="text-xs font-medium text-muted-foreground">{f.label}</dt>
+                <dd className="mt-0.5 whitespace-pre-wrap text-foreground/90">
+                  {f.values.join(", ")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function _buildDraft(ev: Evaluation): DraftSections {
   return (
     ev.draft ?? {
       background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
