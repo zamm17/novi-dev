@@ -56,16 +56,26 @@ export interface AssessmentInfo {
   strengths: string;
   concerns: string;
   educationalImpact: string;
+  speechSoundProfile?: string;
+  oralMotor?: string;
+  hearing?: string;
 }
 
 export interface DraftSections {
-  background: string;
+  evaluationInformation: string;
   reasonForReferral: string;
+  sourcesOfData: string;
+  backgroundAndHistory: string;
   parentInputSummary: string;
   teacherInputSummary: string;
+  behavioralObservations: string;
+  testingConditionsAndValidity: string;
   assessmentResults: string;
+  speechSoundProfile: string;
   presentLevels: string;
+  educationalImpact: string;
   interpretation: string;
+  eligibilityConsiderations: string;
   recommendations: string;
   summary: string;
 }
@@ -119,6 +129,12 @@ const mayaAssessments: AssessmentInfo = {
     "Articulation errors reduce intelligibility in connected speech, especially with unfamiliar listeners, and are affecting classroom participation.",
   educationalImpact:
     "Reduced intelligibility is impacting oral participation and self-confidence during oral reading and discussions.",
+  speechSoundProfile:
+    "Target sounds: /r/, /s/, /th/. Errors observed across initial, medial, and final word positions. Connected speech intelligibility is reduced to unfamiliar listeners (estimated ~65% at the single-word level, lower in conversation). Stimulable for /r/ and /th/ with visual and tactile cues; /s/ shows an inconsistent frontal lisp that is not yet reliably stimulable.",
+  oralMotor:
+    "Oral mechanism examination: structure and function within normal limits. No evidence of structural or motor-based contribution to sound errors.",
+  hearing:
+    "Hearing screening passed in spring 2026 at the school-based screening (pure-tone, bilateral, within limits).",
 };
 
 const jamalAssessments: AssessmentInfo = {
@@ -132,6 +148,10 @@ const jamalAssessments: AssessmentInfo = {
   concerns: "Inferential language, multi-step direction following, formulated responses.",
   educationalImpact:
     "Language weaknesses affect reading comprehension, written response, and participation in whole-group discussion.",
+  speechSoundProfile:
+    "Articulation and speech sound production judged within functional limits during connected speech; no consistent sound-level errors of concern.",
+  oralMotor: "Oral mechanism examination unremarkable.",
+  hearing: "Hearing screening passed in fall 2025.",
 };
 
 const sophieAssessments: AssessmentInfo = {
@@ -145,6 +165,10 @@ const sophieAssessments: AssessmentInfo = {
   concerns: "Expressive vocabulary in English, articulation impacting intelligibility.",
   educationalImpact:
     "Communication concerns affect classroom participation, peer interaction, and access to grade-level oral discussion.",
+  speechSoundProfile:
+    "Multiple sound errors present across word positions in English, contributing to reduced intelligibility with unfamiliar listeners. Home-language influence considered — errors are not fully explained by typical Vietnamese-English patterns. Stimulability data limited; more information may be needed to characterize error patterns fully.",
+  oralMotor: "Oral mechanism examination within normal limits.",
+  hearing: "Recent audiology clearance following history of otitis media (tubes at age 3).",
 };
 
 // A due date offset in days from today. Used to keep at least a couple of
