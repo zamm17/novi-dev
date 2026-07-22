@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -36,8 +36,13 @@ import {
   resetDemoData,
   useParentSubmission,
   useTeacherSubmission,
+  useDemoResetVersion,
   type Submission,
 } from "@/lib/demo-store";
+import {
+  buildDraftFromPayload,
+  buildEvaluationDraftPayload,
+} from "@/lib/draft-payload";
 
 export const Route = createFileRoute("/evaluations/$id")({
   loader: ({ params }) => {
@@ -112,6 +117,7 @@ function WorkspacePage() {
   const { ev: baseEv } = Route.useLoaderData();
   const parentSub = useParentSubmission();
   const teacherSub = useTeacherSubmission();
+  const resetVersion = useDemoResetVersion();
   const ev = useMemo(
     () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
     [baseEv, parentSub, teacherSub],
@@ -120,11 +126,17 @@ function WorkspacePage() {
   const [generating, setGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
 
+  // Clear any locally generated draft when the demo is reset.
+  useEffect(() => {
+    setGeneratedDraft(null);
+    setTab("Overview");
+  }, [resetVersion]);
+
   const handleGenerate = () => {
     if (generating) return;
     setGenerating(true);
     setTimeout(() => {
-      setGeneratedDraft(buildDraft(ev));
+      setGeneratedDraft(buildDraft(ev, parentSub, teacherSub));
       setGenerating(false);
       setTab("AI Draft");
       toast.success("Draft generated for SLP review");
@@ -170,6 +182,8 @@ function WorkspacePage() {
                   generatedDraft={generatedDraft}
                   onGenerate={handleGenerate}
                   generating={generating}
+                  parentSub={parentSub}
+                  teacherSub={teacherSub}
                 />
               )}
             </div>
@@ -609,7 +623,7 @@ function OverviewTab({
             </div>
             <p className="mt-2 text-muted-foreground">
               {sessionParent
-                ? "Submitted in this demo session. Available in the Parent Input tab."
+                ? "Submitted in this browser. Available in the Parent Input tab."
                 : "Parent questionnaire is complete and available in the Parent Input tab."}
             </p>
           </div>
@@ -654,7 +668,7 @@ function OverviewTab({
             </div>
             <p className="mt-2 text-muted-foreground">
               {sessionTeacher
-                ? "Submitted in this demo session. Available in the Teacher Input tab."
+                ? "Submitted in this browser. Available in the Teacher Input tab."
                 : "Teacher questionnaire is complete and available in the Teacher Input tab."}
             </p>
           </div>
@@ -867,7 +881,7 @@ function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission 
       right={
         <span className="text-xs text-muted-foreground">
           {sessionSub
-            ? `Submitted in this demo session · ${ev.parent.submittedDate}`
+            ? `Submitted in this browser · ${ev.parent.submittedDate}`
             : ev.parent.submitted
               ? `Submitted ${ev.parent.submittedDate}`
               : "Pending"}
@@ -910,7 +924,7 @@ function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission
       right={
         <span className="text-xs text-muted-foreground">
           {sessionSub
-            ? `Submitted in this demo session · ${ev.teacher.submittedDate}`
+            ? `Submitted in this browser · ${ev.teacher.submittedDate}`
             : ev.teacher.submitted
               ? `Submitted ${ev.teacher.submittedDate}`
               : "Pending"}
@@ -1072,8 +1086,14 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function buildDraft(ev: Evaluation): DraftSections {
-  return _buildDraft(ev);
+function buildDraft(
+  ev: Evaluation,
+  parentSub: Submission | null,
+  teacherSub: Submission | null,
+): DraftSections {
+  if (ev.draft) return ev.draft;
+  const payload = buildEvaluationDraftPayload(ev, parentSub, teacherSub);
+  return buildDraftFromPayload(payload);
 }
 
 function ResetDemoButton() {
@@ -1103,7 +1123,7 @@ function SessionResponses({ sub }: { sub: Submission }) {
   return (
     <div className="space-y-4">
       <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
-        Submitted in this demo session. Values below reflect what was entered on the shared
+        Submitted in this browser. Values below reflect what was entered on the shared
         questionnaire link.
       </div>
       {sections.map((s) => (
@@ -1124,26 +1144,6 @@ function SessionResponses({ sub }: { sub: Submission }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function _buildDraft(ev: Evaluation): DraftSections {
-  return (
-    ev.draft ?? {
-      background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
-      reasonForReferral: ev.referralReason,
-      parentInputSummary: ev.parent.concerns ?? "",
-      teacherInputSummary: ev.teacher.classroomConcerns ?? "",
-      assessmentResults: ev.assessments.entries
-        .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
-        .join("\n"),
-      presentLevels: ev.assessments.strengths,
-      interpretation:
-        "Results should be interpreted in the context of parent, teacher, and clinician information. Eligibility is determined by the IEP team.",
-      recommendations:
-        "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
-      summary: `Summary of ${ev.firstName}'s evaluation for team discussion.`,
-    }
   );
 }
 
@@ -1170,12 +1170,16 @@ function DraftTab({
   generatedDraft,
   onGenerate,
   generating,
+  parentSub,
+  teacherSub,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   generatedDraft: DraftSections | null;
   onGenerate: () => void;
   generating: boolean;
+  parentSub: Submission | null;
+  teacherSub: Submission | null;
 }) {
   const ready = isReadyForDraft(ev);
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
@@ -1229,7 +1233,7 @@ function DraftTab({
     );
   }
 
-  const d: DraftSections = generatedDraft ?? buildDraft(ev);
+  const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
   const hasDraftContent = Boolean(generatedDraft || ev.draft);
 
   const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
