@@ -428,6 +428,14 @@ function NextActionPanel({
 
   let action: ActionSpec;
   switch (ev.status) {
+    case "Missing information":
+      action = {
+        label: "Copy parent link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Multiple required items are missing. Start by sharing intake links with the parent and teacher.",
+        onClick: () => copyLink("parent"),
+      };
+      break;
     case "Waiting on parent":
       action = {
         label: "Copy parent link",
