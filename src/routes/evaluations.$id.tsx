@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
+import { hasSupabaseDraftConfig } from "@/lib/generate-draft";
 import {
   getEvaluation,
   getChecklist,
