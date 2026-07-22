@@ -182,6 +182,8 @@ function WorkspacePage() {
                   generatedDraft={generatedDraft}
                   onGenerate={handleGenerate}
                   generating={generating}
+                  parentSub={parentSub}
+                  teacherSub={teacherSub}
                 />
               )}
             </div>
