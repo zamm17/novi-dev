@@ -1044,6 +1044,27 @@ function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission
 
 function AssessmentsTab({ ev }: { ev: Evaluation }) {
   const [entries, setEntries] = useState<AssessmentEntry[]>(ev.assessments.entries);
+  const [slpObservations, setSlpObservations] = useState(ev.assessments.slpObservations);
+  const [strengths, setStrengths] = useState(ev.assessments.strengths);
+  const [concerns, setConcerns] = useState(ev.assessments.concerns);
+  const [educationalImpact, setEducationalImpact] = useState(ev.assessments.educationalImpact);
+  const [speechSoundProfile, setSpeechSoundProfile] = useState(
+    ev.assessments.speechSoundProfile ?? "",
+  );
+  const [oralMotor, setOralMotor] = useState(ev.assessments.oralMotor ?? "");
+  const [hearing, setHearing] = useState(ev.assessments.hearing ?? "");
+
+  // Re-sync when the underlying evaluation (e.g., after reset) changes.
+  useEffect(() => {
+    setEntries(ev.assessments.entries);
+    setSlpObservations(ev.assessments.slpObservations);
+    setStrengths(ev.assessments.strengths);
+    setConcerns(ev.assessments.concerns);
+    setEducationalImpact(ev.assessments.educationalImpact);
+    setSpeechSoundProfile(ev.assessments.speechSoundProfile ?? "");
+    setOralMotor(ev.assessments.oralMotor ?? "");
+    setHearing(ev.assessments.hearing ?? "");
+  }, [ev.id, ev.assessments]);
 
   const updateEntry = (i: number, patch: Partial<AssessmentEntry>) => {
     setEntries((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
@@ -1136,19 +1157,44 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
 
       <Card title="Observations & clinical notes">
         <div className="grid gap-3 md:grid-cols-2">
-          <LabeledTextarea
+          <ControlledTextarea
             label="SLP observations"
-            defaultValue={ev.assessments.slpObservations}
+            value={slpObservations}
+            onChange={setSlpObservations}
             rows={4}
           />
-          <LabeledTextarea label="Student strengths" defaultValue={ev.assessments.strengths} />
-          <LabeledTextarea label="Areas of concern" defaultValue={ev.assessments.concerns} />
-          <LabeledTextarea
+          <ControlledTextarea
+            label="Student strengths"
+            value={strengths}
+            onChange={setStrengths}
+          />
+          <ControlledTextarea
+            label="Areas of concern"
+            value={concerns}
+            onChange={setConcerns}
+          />
+          <ControlledTextarea
             label="Educational impact"
-            defaultValue={ev.assessments.educationalImpact}
+            value={educationalImpact}
+            onChange={setEducationalImpact}
+          />
+          <ControlledTextarea
+            label="Speech sound profile (optional)"
+            value={speechSoundProfile}
+            onChange={setSpeechSoundProfile}
+          />
+          <ControlledTextarea
+            label="Oral motor (optional)"
+            value={oralMotor}
+            onChange={setOralMotor}
+          />
+          <ControlledTextarea
+            label="Hearing (optional)"
+            value={hearing}
+            onChange={setHearing}
           />
         </div>
-        {!ev.assessments.slpObservations && (
+        {!slpObservations && (
           <p className="mt-3 text-xs text-amber-700">
             <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
             SLP observations are required before generating a draft.
@@ -1157,7 +1203,19 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
         <div className="mt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => toast.success("Assessments saved (demo).")}
+            onClick={() => {
+              saveAssessmentSubmission(ev.id, {
+                entries: entries.filter((e) => e.name.trim() !== ""),
+                slpObservations,
+                strengths,
+                concerns,
+                educationalImpact,
+                speechSoundProfile: speechSoundProfile || undefined,
+                oralMotor: oralMotor || undefined,
+                hearing: hearing || undefined,
+              });
+              toast.success("Assessments saved (demo).");
+            }}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Save className="h-4 w-4" /> Save
@@ -1165,6 +1223,30 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
         </div>
       </Card>
     </div>
+  );
+}
+
+function ControlledTextarea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-sm md:col-span-2">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        className="rounded-md border border-input bg-background p-2 outline-none ring-ring/40 focus:ring-2"
+      />
+    </label>
   );
 }
 
