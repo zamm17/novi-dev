@@ -3,7 +3,6 @@ export type EvalStatus =
   | "Missing information"
   | "Waiting on parent"
   | "Waiting on teacher"
-  | "Assessment info needed"
   | "Ready to generate"
   | "Draft in review";
 
@@ -104,6 +103,59 @@ const emptyAssessments: AssessmentInfo = {
   educationalImpact: "",
 };
 
+// Fictional demo assessment sets reused across students so multiple sample
+// evaluations have complete assessment/observation data.
+const mayaAssessments: AssessmentInfo = {
+  entries: [
+    { name: "GFTA-3 — Sounds in Words", standardScore: "72", percentile: "3", notes: "Multiple errors on /r/, /s/, /th/. Errors consistent across positions." },
+    { name: "CELF-5 — Core Language", standardScore: "104", percentile: "61", notes: "Language skills within age expectations." },
+    { name: "Oral Motor Exam", standardScore: "—", percentile: "—", notes: "Structure and function within normal limits." },
+  ],
+  slpObservations:
+    "Maya was cooperative and engaged. Errors were stimulable in isolation for /r/ and /th/ with visual and tactile cues. Frontal lisp on /s/ was inconsistent.",
+  strengths:
+    "Strong receptive language, age-appropriate vocabulary, good social awareness, and cooperative testing behavior.",
+  concerns:
+    "Articulation errors reduce intelligibility in connected speech, especially with unfamiliar listeners, and are affecting classroom participation.",
+  educationalImpact:
+    "Reduced intelligibility is impacting oral participation and self-confidence during oral reading and discussions.",
+};
+
+const jamalAssessments: AssessmentInfo = {
+  entries: [
+    { name: "CELF-5 — Core Language", standardScore: "82", percentile: "12", notes: "Below average. Weaknesses in Following Directions and Formulated Sentences." },
+    { name: "TNL-2 — Narrative Language", standardScore: "80", percentile: "9", notes: "Reduced inferential responses and story grammar." },
+  ],
+  slpObservations:
+    "Jamal was cooperative. He required repetition and rephrasing for multi-step directions and inferential questions. Literal comprehension was stronger than inferential.",
+  strengths: "Cooperative, good literal comprehension, appropriate social communication.",
+  concerns: "Inferential language, multi-step direction following, formulated responses.",
+  educationalImpact:
+    "Language weaknesses affect reading comprehension, written response, and participation in whole-group discussion.",
+};
+
+const sophieAssessments: AssessmentInfo = {
+  entries: [
+    { name: "PLS-5 — Total Language", standardScore: "84", percentile: "14", notes: "Below average with weakness in Expressive Communication." },
+    { name: "GFTA-3 — Sounds in Words", standardScore: "78", percentile: "7", notes: "Multiple sound errors reducing intelligibility to unfamiliar listeners." },
+  ],
+  slpObservations:
+    "Sophie was shy at first and warmed up over the session. Language testing considered home-language exposure. Errors were consistent across single words and connected speech.",
+  strengths: "Engaged with familiar routines; strong nonverbal communication; supportive home language environment.",
+  concerns: "Expressive vocabulary in English, articulation impacting intelligibility.",
+  educationalImpact:
+    "Communication concerns affect classroom participation, peer interaction, and access to grade-level oral discussion.",
+};
+
+// A due date offset in days from today. Used to keep at least a couple of
+// sample evaluations within the "due within one week" window regardless of
+// when the prototype is opened.
+function dueDateInDays(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export const evaluations: Evaluation[] = [
   {
     id: "ev-001",
@@ -117,28 +169,14 @@ export const evaluations: Evaluation[] = [
     referralReason:
       "Teacher reports persistent difficulty producing /r/, /s/, and /th/ sounds impacting classroom participation and peer interaction.",
     consentDate: "2026-06-20",
-    dueDate: "2026-08-14",
+    dueDate: dueDateInDays(5),
     status: "Missing information",
     missingItems: ["Parent questionnaire", "Teacher questionnaire"],
     nextAction: "Send parent and teacher intake forms to collect background.",
     currentStep: "Parent input",
     parent: { submitted: false },
     teacher: { submitted: false },
-    assessments: {
-      entries: [
-        { name: "GFTA-3 — Sounds in Words", standardScore: "72", percentile: "3", notes: "Multiple errors on /r/, /s/, /th/. Errors consistent across positions." },
-        { name: "CELF-5 — Core Language", standardScore: "104", percentile: "61", notes: "Language skills within age expectations." },
-        { name: "Oral Motor Exam", standardScore: "—", percentile: "—", notes: "Structure and function within normal limits." },
-      ],
-      slpObservations:
-        "Maya was cooperative and engaged. Errors were stimulable in isolation for /r/ and /th/ with visual and tactile cues. Frontal lisp on /s/ was inconsistent.",
-      strengths:
-        "Strong receptive language, age-appropriate vocabulary, good social awareness, and cooperative testing behavior.",
-      concerns:
-        "Articulation errors reduce intelligibility in connected speech, especially with unfamiliar listeners, and are affecting classroom participation.",
-      educationalImpact:
-        "Reduced intelligibility is impacting oral participation and self-confidence during oral reading and discussions.",
-    },
+    assessments: mayaAssessments,
   },
   {
     id: "ev-002",
@@ -152,7 +190,7 @@ export const evaluations: Evaluation[] = [
     referralReason:
       "Difficulty following multi-step directions and answering inferential questions in class.",
     consentDate: "2026-06-25",
-    dueDate: "2026-08-20",
+    dueDate: dueDateInDays(6),
     status: "Waiting on parent",
     missingItems: ["Parent questionnaire"],
     nextAction: "Follow up with parent — form sent 2026-06-27",
@@ -172,7 +210,7 @@ export const evaluations: Evaluation[] = [
         "When asked 'Why do you think the character was sad?' responds with 'I don't know' or restates a fact.",
       supportsTried: "Visual schedules, chunked directions, sentence starters for written response.",
     },
-    assessments: emptyAssessments,
+    assessments: jamalAssessments,
   },
   {
     id: "ev-003",
@@ -206,7 +244,7 @@ export const evaluations: Evaluation[] = [
       priorServices: "None.",
     },
     teacher: { submitted: false },
-    assessments: emptyAssessments,
+    assessments: sophieAssessments,
   },
   {
     id: "ev-004",
@@ -221,7 +259,7 @@ export const evaluations: Evaluation[] = [
       "Three-year reevaluation for existing fluency IEP. Determine continued eligibility and update goals.",
     consentDate: "2026-06-10",
     dueDate: "2026-08-08",
-    status: "Assessment info needed",
+    status: "Missing information",
     missingItems: ["Assessment scores", "SLP observations"],
     nextAction: "Schedule and complete SSI-4 and connected speech sample",
     currentStep: "Assessments",
@@ -346,8 +384,6 @@ export function statusTone(status: EvalStatus): "ready" | "review" | "waiting" |
     case "Waiting on parent":
     case "Waiting on teacher":
       return "waiting";
-    case "Assessment info needed":
-      return "missing";
     case "Missing information":
       return "missing";
     case "Intake needed":
@@ -395,6 +431,14 @@ export function deriveEvaluationState(ev: Evaluation): {
   const missing = list.filter((c) => c.required && !c.complete).map((c) => c.label);
 
   if (missing.length === 0) {
+    if (ev.draft) {
+      return {
+        status: "Draft in review",
+        missingItems: [],
+        nextAction: "Review and finalize draft for the eligibility meeting.",
+        currentStep: "Draft",
+      };
+    }
     return {
       status: "Ready to generate",
       missingItems: [],
@@ -407,16 +451,16 @@ export function deriveEvaluationState(ev: Evaluation): {
   const parentMissing = has("Parent questionnaire");
   const teacherMissing = has("Teacher questionnaire");
   const assessmentsMissing = has("Assessment scores") || has("SLP observations");
+  const knownBlockers = new Set([
+    "Parent questionnaire",
+    "Teacher questionnaire",
+    "Assessment scores",
+    "SLP observations",
+  ]);
+  const otherMissing = missing.some((m) => !knownBlockers.has(m));
 
-  if (parentMissing && teacherMissing) {
-    return {
-      status: "Missing information",
-      missingItems: missing,
-      nextAction: "Send parent and teacher intake forms to collect background.",
-      currentStep: "Parent input",
-    };
-  }
-  if (parentMissing) {
+  // Only "Waiting on X" when that intake is the single missing item.
+  if (parentMissing && !teacherMissing && !assessmentsMissing && !otherMissing) {
     return {
       status: "Waiting on parent",
       missingItems: missing,
@@ -424,7 +468,7 @@ export function deriveEvaluationState(ev: Evaluation): {
       currentStep: "Parent input",
     };
   }
-  if (teacherMissing) {
+  if (teacherMissing && !parentMissing && !assessmentsMissing && !otherMissing) {
     return {
       status: "Waiting on teacher",
       missingItems: missing,
@@ -432,18 +476,73 @@ export function deriveEvaluationState(ev: Evaluation): {
       currentStep: "Teacher input",
     };
   }
-  if (assessmentsMissing) {
-    return {
-      status: "Assessment info needed",
-      missingItems: missing,
-      nextAction: "Enter assessment scores and SLP observations.",
-      currentStep: "Assessments",
-    };
+
+  // Everything else — including "only assessments missing" — surfaces as
+  // Missing information so the dashboard doesn't have a separate technical
+  // category for it.
+  let nextAction = "Complete the remaining intake items.";
+  let currentStep: WorkflowStep = "Student info";
+  if (parentMissing && teacherMissing) {
+    nextAction = "Send parent and teacher intake forms to collect background.";
+    currentStep = "Parent input";
+  } else if (parentMissing) {
+    nextAction = "Follow up with the parent and complete remaining items.";
+    currentStep = "Parent input";
+  } else if (teacherMissing) {
+    nextAction = "Follow up with the teacher and complete remaining items.";
+    currentStep = "Teacher input";
+  } else if (assessmentsMissing) {
+    nextAction = "Enter assessment scores and SLP observations.";
+    currentStep = "Assessments";
   }
   return {
-    status: "Intake needed",
+    status: "Missing information",
     missingItems: missing,
-    nextAction: "Complete the remaining intake items.",
-    currentStep: "Student info",
+    nextAction,
+    currentStep,
   };
 }
+
+/**
+ * True when the evaluation's due date falls within the next 7 calendar days
+ * (today counts, past-due excluded).
+ */
+export function isDueWithinOneWeek(ev: Evaluation, now: Date = new Date()): boolean {
+  const due = new Date(ev.dueDate + "T00:00:00");
+  if (Number.isNaN(due.getTime())) return false;
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.floor((due.getTime() - startOfToday.getTime()) / dayMs);
+  return diffDays >= 0 && diffDays <= 7;
+}
+
+// (fallthrough guard — kept for clarity if new statuses are added later)
+function _unusedGuard(): EvalStatus {
+  return "Missing information";
+}
+// referenced to avoid unused-warning
+void _unusedGuard;
+
+// Legacy no-op: previous deriveEvaluationState ended with a return; we've
+// restructured above.
+function _legacy() {
+  return {
+    status: "Intake needed" as EvalStatus,
+    missingItems: [] as string[],
+    nextAction: "Complete the remaining intake items.",
+    currentStep: "Student info" as WorkflowStep,
+  };
+}
+void _legacy;
+
+function __removed_placeholder__() {
+  if (false) {
+    return {
+      status: "Intake needed" as EvalStatus,
+      missingItems: [] as string[],
+      nextAction: "Complete the remaining intake items.",
+      currentStep: "Student info" as WorkflowStep,
+    };
+  }
+}
+void __removed_placeholder__;
