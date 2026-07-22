@@ -368,14 +368,190 @@ function copyLink(kind: "parent" | "teacher") {
   toast.success(`Demo ${kind} link copied.`);
 }
 
-function OverviewTab({ ev, onGoDraft }: { ev: Evaluation; onGoDraft: () => void }) {
-  const ready = isReadyForDraft(ev);
+function NextActionPanel({
+  ev,
+  setTab,
+  onGenerate,
+  generating,
+  hasGenerated,
+}: {
+  ev: Evaluation;
+  setTab: (t: Tab) => void;
+  onGenerate: () => void;
+  generating: boolean;
+  hasGenerated: boolean;
+}) {
+  type ActionSpec = {
+    label: string;
+    icon: React.ReactNode;
+    why: string;
+    onClick: () => void;
+  };
+
+  let action: ActionSpec;
+  switch (ev.status) {
+    case "Waiting on parent":
+      action = {
+        label: "Copy parent link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Parent intake supplies developmental, medical, and home-language history the report requires.",
+        onClick: () => copyLink("parent"),
+      };
+      break;
+    case "Waiting on teacher":
+      action = {
+        label: "Copy teacher link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Teacher input describes classroom impact and functional communication — key context for eligibility discussion.",
+        onClick: () => copyLink("teacher"),
+      };
+      break;
+    case "Assessment info needed":
+      action = {
+        label: "Go to assessments",
+        icon: <ArrowRight className="h-4 w-4" />,
+        why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
+        onClick: () => setTab("Assessments & Observations"),
+      };
+      break;
+    case "Ready to generate":
+      action = {
+        label: generating ? "Generating…" : "Generate draft",
+        icon: generating ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Sparkles className="h-4 w-4" />
+        ),
+        why: "All required inputs are present. Novi will assemble an editable draft grounded in this workspace.",
+        onClick: onGenerate,
+      };
+      break;
+    case "Draft in review":
+      action = {
+        label: "Review draft",
+        icon: <ArrowRight className="h-4 w-4" />,
+        why: "Draft sections are ready for SLP review and editing before the eligibility meeting.",
+        onClick: () => setTab("AI Draft"),
+      };
+      break;
+    default:
+      action = {
+        label: "Open student details",
+        icon: <ArrowRight className="h-4 w-4" />,
+        why: "Complete intake to unlock the rest of the workflow.",
+        onClick: () => setTab("Student Details"),
+      };
+  }
+
+  return (
+    <div className="rounded-lg border border-primary/25 bg-primary/5 p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-xs font-medium uppercase tracking-wide text-primary">
+            Next action
+          </div>
+          <div className="mt-1 text-sm font-medium text-foreground">
+            {ev.nextAction}
+          </div>
+          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{action.why}</p>
+        </div>
+        <button
+          type="button"
+          onClick={action.onClick}
+          disabled={generating}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+        >
+          {action.icon} {action.label}
+        </button>
+      </div>
+      {hasGenerated && ev.status === "Ready to generate" && (
+        <p className="mt-2 text-xs text-emerald-700">
+          Draft available in the AI Draft tab.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BlockingPanel({
+  missing,
+  setTab,
+}: {
+  missing: { label: string }[];
+  setTab: (t: Tab) => void;
+}) {
+  if (missing.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-amber-900">
+            Draft generation is blocked by {missing.length} required item
+            {missing.length === 1 ? "" : "s"}.
+          </div>
+          <ul className="mt-3 space-y-2">
+            {missing.map((m) => {
+              const meta = missingItemMeta[m.label];
+              return (
+                <li
+                  key={m.label}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-md border border-amber-200 bg-white p-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground">{m.label}</div>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {meta?.why ?? "Required to generate a complete draft."}
+                    </p>
+                  </div>
+                  {meta && (
+                    <button
+                      type="button"
+                      onClick={() => setTab(meta.tab)}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-accent"
+                    >
+                      {meta.action} <ArrowRight className="h-3 w-3" />
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OverviewTab({
+  ev,
+  setTab,
+  onGenerate,
+  generating,
+  hasGenerated,
+}: {
+  ev: Evaluation;
+  setTab: (t: Tab) => void;
+  onGenerate: () => void;
+  generating: boolean;
+  hasGenerated: boolean;
+}) {
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
+  const ready = missing.length === 0;
   const scoresComplete = ev.assessments.entries.length > 0;
   const obsComplete = Boolean(ev.assessments.slpObservations);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
+      <NextActionPanel
+        ev={ev}
+        setTab={setTab}
+        onGenerate={onGenerate}
+        generating={generating}
+        hasGenerated={hasGenerated}
+      />
+      {!ready && <BlockingPanel missing={missing} setTab={setTab} />}
+      <div className="grid gap-4 md:grid-cols-2">
       <Card
         title="Parent intake"
         right={
@@ -474,13 +650,16 @@ function OverviewTab({ ev, onGoDraft }: { ev: Evaluation; onGoDraft: () => void 
             </p>
             <button
               type="button"
-              onClick={() => {
-                toast.success("Draft generation simulated. Opening AI Draft tab.");
-                onGoDraft();
-              }}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              onClick={onGenerate}
+              disabled={generating}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
             >
-              <Sparkles className="h-4 w-4" /> Generate evaluation draft
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}{" "}
+              {generating ? "Generating…" : "Generate evaluation draft"}
             </button>
           </div>
         ) : (
@@ -497,6 +676,7 @@ function OverviewTab({ ev, onGoDraft }: { ev: Evaluation; onGoDraft: () => void 
           </div>
         )}
       </Card>
+      </div>
     </div>
   );
 }
