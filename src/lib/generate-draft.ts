@@ -10,6 +10,28 @@ export interface GenerateDraftResult {
   error?: string;
 }
 
+// TODO: Replace these prototype fallback constants with proper deploy-time env
+// vars (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) before production.
+const PROTOTYPE_SUPABASE_URL = "https://gpfzajwjmygwszmnschx.supabase.co";
+const PROTOTYPE_SUPABASE_PUBLIC_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdwZnphandqbXlnd3N6bW5zY2h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2ODg5NjMsImV4cCI6MjEwMDI2NDk2M30.Chgfz9Twxrq5_wfznD4v4eWI2dgf_qCrSUztrqFke6Y";
+
+function resolveSupabaseConfig(): { url?: string; key?: string } {
+  const url =
+    (import.meta.env.VITE_SUPABASE_URL as string | undefined) ||
+    PROTOTYPE_SUPABASE_URL;
+  const key =
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
+    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ||
+    PROTOTYPE_SUPABASE_PUBLIC_KEY;
+  return { url, key };
+}
+
+export function getDraftEndpointUrl(): string {
+  const { url } = resolveSupabaseConfig();
+  return `${url ?? ""}/functions/v1/generate-evaluation-draft`;
+}
+
 const REQUIRED_KEYS: (keyof DraftSections)[] = [
   "background",
   "reasonForReferral",
@@ -42,10 +64,7 @@ function isDraftSections(v: unknown): v is DraftSections {
 export async function generateEvaluationDraft(
   payload: EvaluationDraftPayload,
 ): Promise<GenerateDraftResult> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const supabaseKey =
-    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
+  const { url: supabaseUrl, key: supabaseKey } = resolveSupabaseConfig();
   const fallback = (error?: string): GenerateDraftResult => ({
     draft: buildDraftFromPayload(payload),
     source: "local-fallback",
@@ -90,9 +109,6 @@ export async function generateEvaluationDraft(
 }
 
 export function hasSupabaseDraftConfig(): boolean {
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const key =
-    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined);
+  const { url, key } = resolveSupabaseConfig();
   return Boolean(url && key);
 }
