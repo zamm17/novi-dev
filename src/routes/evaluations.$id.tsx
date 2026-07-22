@@ -553,12 +553,16 @@ function OverviewTab({
   onGenerate,
   generating,
   hasGenerated,
+  sessionParent,
+  sessionTeacher,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   onGenerate: () => void;
   generating: boolean;
   hasGenerated: boolean;
+  sessionParent: Submission | null;
+  sessionTeacher: Submission | null;
 }) {
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
   const ready = missing.length === 0;
@@ -604,7 +608,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.parent.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Parent questionnaire is complete and available in the Parent Input tab.
+              {sessionParent
+                ? "Submitted in this demo session. Available in the Parent Input tab."
+                : "Parent questionnaire is complete and available in the Parent Input tab."}
             </p>
           </div>
         ) : (
@@ -647,7 +653,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.teacher.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Teacher questionnaire is complete and available in the Teacher Input tab.
+              {sessionTeacher
+                ? "Submitted in this demo session. Available in the Teacher Input tab."
+                : "Teacher questionnaire is complete and available in the Teacher Input tab."}
             </p>
           </div>
         ) : (
@@ -852,17 +860,23 @@ function PendingIntake({
   );
 }
 
-function ParentTab({ ev }: { ev: Evaluation }) {
+function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Parent questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.parent.submitted ? `Submitted ${ev.parent.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this demo session · ${ev.parent.submittedDate}`
+            : ev.parent.submitted
+              ? `Submitted ${ev.parent.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.parent.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.parent.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Parent concerns" value={ev.parent.concerns} />
           <IntakeSection label="Developmental history" value={ev.parent.developmentalHistory} />
@@ -889,17 +903,23 @@ function ParentTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function TeacherTab({ ev }: { ev: Evaluation }) {
+function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Teacher questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.teacher.submitted ? `Submitted ${ev.teacher.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this demo session · ${ev.teacher.submittedDate}`
+            : ev.teacher.submitted
+              ? `Submitted ${ev.teacher.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.teacher.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.teacher.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Classroom concerns" value={ev.teacher.classroomConcerns} />
           <IntakeSection label="Academic impact" value={ev.teacher.academicImpact} />
