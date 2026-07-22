@@ -18,7 +18,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "SLP Dashboard — Novi" },
       {
         property: "og:description",
-        content: "Evaluation workflow workspace for school-based SLPs.",
+        content: "Novi helps school-based Speech-Language Pathologists manage evaluations, missing information, and AI-assisted report drafts.",
       },
     ],
   }),
