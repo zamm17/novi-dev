@@ -78,14 +78,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "SLP Dashboard — Novi" },
+      { name: "description", content: "Novi helps school-based Speech-Language Pathologists manage evaluations, missing information, and AI-assisted report drafts." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "SLP Dashboard — Novi" },
+      { property: "og:description", content: "Novi helps school-based Speech-Language Pathologists manage evaluations, missing information, and AI-assisted report drafts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "SLP Dashboard — Novi" },
+      { name: "twitter:description", content: "Novi helps school-based Speech-Language Pathologists manage evaluations, missing information, and AI-assisted report drafts." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/94eca87d-0ba6-4663-a783-bc2a2a7b45bb/id-preview-3b2a5a64--8b95b1c8-e676-4b9f-843d-31a18814b23a.lovable.app-1784698173429.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/94eca87d-0ba6-4663-a783-bc2a2a7b45bb/id-preview-3b2a5a64--8b95b1c8-e676-4b9f-843d-31a18814b23a.lovable.app-1784698173429.png" },
     ],
     links: [
       {

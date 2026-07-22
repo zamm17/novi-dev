@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   Trash2,
   Loader2,
   ArrowRight,
+  RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/novi/AppShell";
 import { StatusBadge } from "@/components/novi/StatusBadge";
@@ -29,6 +30,19 @@ import {
   type AssessmentEntry,
   type DraftSections,
 } from "@/lib/mock-data";
+import {
+  applySubmissionsToEval,
+  groupSubmissionBySection,
+  resetDemoData,
+  useParentSubmission,
+  useTeacherSubmission,
+  useDemoResetVersion,
+  type Submission,
+} from "@/lib/demo-store";
+import {
+  buildDraftFromPayload,
+  buildEvaluationDraftPayload,
+} from "@/lib/draft-payload";
 
 export const Route = createFileRoute("/evaluations/$id")({
   loader: ({ params }) => {
@@ -100,20 +114,53 @@ const missingItemMeta: Record<
 };
 
 function WorkspacePage() {
-  const { ev } = Route.useLoaderData();
+  const { ev: baseEv } = Route.useLoaderData();
+  const parentSub = useParentSubmission();
+  const teacherSub = useTeacherSubmission();
+  const resetVersion = useDemoResetVersion();
+  const ev = useMemo(
+    () => applySubmissionsToEval(baseEv, { parent: parentSub, teacher: teacherSub }),
+    [baseEv, parentSub, teacherSub],
+  );
   const [tab, setTab] = useState<Tab>("Overview");
   const [generating, setGenerating] = useState(false);
   const [generatedDraft, setGeneratedDraft] = useState<DraftSections | null>(null);
 
+  // Clear any locally generated draft when the demo is reset.
+  useEffect(() => {
+    setGeneratedDraft(null);
+    setTab("Overview");
+  }, [resetVersion]);
+
   const handleGenerate = () => {
     if (generating) return;
     setGenerating(true);
-    setTimeout(() => {
-      setGeneratedDraft(buildDraft(ev));
+    (async () => {
+      // Preserve mock draft behavior for pre-seeded evaluations.
+      if (ev.draft) {
+        await new Promise((r) => setTimeout(r, 800));
+        setGeneratedDraft(ev.draft);
+        setGenerating(false);
+        setTab("AI Draft");
+        toast.success("Draft generated for SLP review");
+        return;
+      }
+      const payload = buildEvaluationDraftPayload(ev, parentSub, teacherSub);
+      const { generateEvaluationDraft } = await import("@/lib/generate-draft");
+      const result = await generateEvaluationDraft(payload);
+      setGeneratedDraft(result.draft);
       setGenerating(false);
       setTab("AI Draft");
-      toast.success("Draft generated for SLP review");
-    }, 1000);
+      if (result.source === "edge-function") {
+        toast.success("Draft generated for SLP review");
+      } else {
+        if (result.error) console.warn("[Novi] Draft generation fallback:", result.error);
+        toast.message("Using local demo draft", {
+          description:
+            "AI generation was unavailable, so Novi used the prototype fallback.",
+        });
+      }
+    })();
   };
 
   return (
@@ -140,11 +187,13 @@ function WorkspacePage() {
                   onGenerate={handleGenerate}
                   generating={generating}
                   hasGenerated={Boolean(generatedDraft)}
+                  sessionParent={parentSub}
+                  sessionTeacher={teacherSub}
                 />
               )}
               {tab === "Student Details" && <StudentDetailsTab ev={ev} />}
-              {tab === "Parent Input" && <ParentTab ev={ev} />}
-              {tab === "Teacher Input" && <TeacherTab ev={ev} />}
+              {tab === "Parent Input" && <ParentTab ev={ev} sessionSub={parentSub} />}
+              {tab === "Teacher Input" && <TeacherTab ev={ev} sessionSub={teacherSub} />}
               {tab === "Assessments & Observations" && <AssessmentsTab ev={ev} />}
               {tab === "AI Draft" && (
                 <DraftTab
@@ -153,6 +202,8 @@ function WorkspacePage() {
                   generatedDraft={generatedDraft}
                   onGenerate={handleGenerate}
                   generating={generating}
+                  parentSub={parentSub}
+                  teacherSub={teacherSub}
                 />
               )}
             </div>
@@ -164,6 +215,7 @@ function WorkspacePage() {
               Demo prototype using fictional data. Novi assists — the SLP determines eligibility and
               clinical recommendations.
             </div>
+            <ResetDemoButton />
           </aside>
         </div>
       </div>
@@ -392,36 +444,67 @@ function NextActionPanel({
     icon: React.ReactNode;
     why: string;
     onClick: () => void;
+    variant?: "primary" | "secondary";
   };
 
-  let action: ActionSpec;
+  let actions: ActionSpec[];
   switch (ev.status) {
+    case "Missing information": {
+      const parentAction: ActionSpec = {
+        label: "Copy parent link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
+        onClick: () => copyLink("parent"),
+      };
+      const teacherAction: ActionSpec = {
+        label: "Copy teacher link",
+        icon: <Copy className="h-4 w-4" />,
+        why: "Multiple required items are missing. Share the relevant intake links to collect background information.",
+        onClick: () => copyLink("teacher"),
+        variant: "secondary",
+      };
+      actions = [];
+      if (!ev.parent.submitted) actions.push(parentAction);
+      if (!ev.teacher.submitted) actions.push({
+        ...teacherAction,
+        variant: actions.length === 0 ? "primary" : "secondary",
+      });
+      if (actions.length === 0) {
+        actions = [{
+          label: "Open student details",
+          icon: <ArrowRight className="h-4 w-4" />,
+          why: "Multiple required items are missing. Complete intake to unlock the rest of the workflow.",
+          onClick: () => setTab("Student Details"),
+        }];
+      }
+      break;
+    }
     case "Waiting on parent":
-      action = {
+      actions = [{
         label: "Copy parent link",
         icon: <Copy className="h-4 w-4" />,
         why: "Parent intake supplies developmental, medical, and home-language history the report requires.",
         onClick: () => copyLink("parent"),
-      };
+      }];
       break;
     case "Waiting on teacher":
-      action = {
+      actions = [{
         label: "Copy teacher link",
         icon: <Copy className="h-4 w-4" />,
         why: "Teacher input describes classroom impact and functional communication — key context for eligibility discussion.",
         onClick: () => copyLink("teacher"),
-      };
+      }];
       break;
     case "Assessment info needed":
-      action = {
+      actions = [{
         label: "Go to assessments",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Standard scores and SLP observations are required for the Assessment Results and Present Levels sections.",
         onClick: () => setTab("Assessments & Observations"),
-      };
+      }];
       break;
     case "Ready to generate":
-      action = {
+      actions = [{
         label: generating ? "Generating…" : "Generate draft",
         icon: generating ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,23 +513,23 @@ function NextActionPanel({
         ),
         why: "All required inputs are present. Novi will assemble an editable draft grounded in this workspace.",
         onClick: onGenerate,
-      };
+      }];
       break;
     case "Draft in review":
-      action = {
+      actions = [{
         label: "Review draft",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Draft sections are ready for SLP review and editing before the eligibility meeting.",
         onClick: () => setTab("AI Draft"),
-      };
+      }];
       break;
     default:
-      action = {
+      actions = [{
         label: "Open student details",
         icon: <ArrowRight className="h-4 w-4" />,
         why: "Complete intake to unlock the rest of the workflow.",
         onClick: () => setTab("Student Details"),
-      };
+      }];
   }
 
   return (
@@ -459,16 +542,28 @@ function NextActionPanel({
           <div className="mt-1 text-sm font-medium text-foreground">
             {ev.nextAction}
           </div>
-          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{action.why}</p>
+          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">{actions[0].why}</p>
         </div>
-        <button
-          type="button"
-          onClick={action.onClick}
-          disabled={generating}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-        >
-          {action.icon} {action.label}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {actions.map((a, i) => {
+            const secondary = a.variant === "secondary";
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={a.onClick}
+                disabled={generating}
+                className={
+                  secondary
+                    ? "inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-70"
+                    : "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+                }
+              >
+                {a.icon} {a.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {hasGenerated && ev.status === "Ready to generate" && (
         <p className="mt-2 text-xs text-emerald-700">
@@ -535,12 +630,16 @@ function OverviewTab({
   onGenerate,
   generating,
   hasGenerated,
+  sessionParent,
+  sessionTeacher,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   onGenerate: () => void;
   generating: boolean;
   hasGenerated: boolean;
+  sessionParent: Submission | null;
+  sessionTeacher: Submission | null;
 }) {
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
   const ready = missing.length === 0;
@@ -586,7 +685,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.parent.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Parent questionnaire is complete and available in the Parent Input tab.
+              {sessionParent
+                ? "Submitted in this browser. Available in the Parent Input tab."
+                : "Parent questionnaire is complete and available in the Parent Input tab."}
             </p>
           </div>
         ) : (
@@ -629,7 +730,9 @@ function OverviewTab({
               <Check className="h-4 w-4" /> Submitted {ev.teacher.submittedDate}
             </div>
             <p className="mt-2 text-muted-foreground">
-              Teacher questionnaire is complete and available in the Teacher Input tab.
+              {sessionTeacher
+                ? "Submitted in this browser. Available in the Teacher Input tab."
+                : "Teacher questionnaire is complete and available in the Teacher Input tab."}
             </p>
           </div>
         ) : (
@@ -834,17 +937,23 @@ function PendingIntake({
   );
 }
 
-function ParentTab({ ev }: { ev: Evaluation }) {
+function ParentTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Parent questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.parent.submitted ? `Submitted ${ev.parent.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this browser · ${ev.parent.submittedDate}`
+            : ev.parent.submitted
+              ? `Submitted ${ev.parent.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.parent.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.parent.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Parent concerns" value={ev.parent.concerns} />
           <IntakeSection label="Developmental history" value={ev.parent.developmentalHistory} />
@@ -871,17 +980,23 @@ function ParentTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function TeacherTab({ ev }: { ev: Evaluation }) {
+function TeacherTab({ ev, sessionSub }: { ev: Evaluation; sessionSub: Submission | null }) {
   return (
     <Card
       title="Teacher questionnaire"
       right={
         <span className="text-xs text-muted-foreground">
-          {ev.teacher.submitted ? `Submitted ${ev.teacher.submittedDate}` : "Pending"}
+          {sessionSub
+            ? `Submitted in this browser · ${ev.teacher.submittedDate}`
+            : ev.teacher.submitted
+              ? `Submitted ${ev.teacher.submittedDate}`
+              : "Pending"}
         </span>
       }
     >
-      {ev.teacher.submitted ? (
+      {sessionSub ? (
+        <SessionResponses sub={sessionSub} />
+      ) : ev.teacher.submitted ? (
         <div className="grid gap-4 md:grid-cols-2">
           <IntakeSection label="Classroom concerns" value={ev.teacher.classroomConcerns} />
           <IntakeSection label="Academic impact" value={ev.teacher.academicImpact} />
@@ -1034,23 +1149,64 @@ function AssessmentsTab({ ev }: { ev: Evaluation }) {
   );
 }
 
-function buildDraft(ev: Evaluation): DraftSections {
+function buildDraft(
+  ev: Evaluation,
+  parentSub: Submission | null,
+  teacherSub: Submission | null,
+): DraftSections {
+  if (ev.draft) return ev.draft;
+  const payload = buildEvaluationDraftPayload(ev, parentSub, teacherSub);
+  return buildDraftFromPayload(payload);
+}
+
+function ResetDemoButton() {
   return (
-    ev.draft ?? {
-      background: `${ev.firstName} ${ev.lastName} is a ${ev.grade}-grade student at ${ev.school} referred for a speech-language evaluation.`,
-      reasonForReferral: ev.referralReason,
-      parentInputSummary: ev.parent.concerns ?? "",
-      teacherInputSummary: ev.teacher.classroomConcerns ?? "",
-      assessmentResults: ev.assessments.entries
-        .map((a) => `${a.name}: SS ${a.standardScore}, %ile ${a.percentile}. ${a.notes}`)
-        .join("\n"),
-      presentLevels: ev.assessments.strengths,
-      interpretation:
-        "Results should be interpreted in the context of parent, teacher, and clinician information. Eligibility is determined by the IEP team.",
-      recommendations:
-        "The IEP team should consider the student's need for specially designed instruction based on the findings above.",
-      summary: `Summary of ${ev.firstName}'s evaluation for team discussion.`,
-    }
+    <button
+      type="button"
+      onClick={() => {
+        resetDemoData();
+        toast.success("Demo data reset");
+      }}
+      className="inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-input bg-background px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+    >
+      <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
+    </button>
+  );
+}
+
+function SessionResponses({ sub }: { sub: Submission }) {
+  const sections = groupSubmissionBySection(sub);
+  if (sections.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Submitted, but no free-text answers were provided.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+        Submitted in this browser. Values below reflect what was entered on the shared
+        questionnaire link.
+      </div>
+      {sections.map((s) => (
+        <div key={s.title} className="rounded-md border border-border bg-background/40 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {s.title}
+          </div>
+          <dl className="mt-2 space-y-2">
+            {s.fields.map((f) => (
+              <div key={f.label} className="text-sm">
+                <dt className="text-xs font-medium text-muted-foreground">{f.label}</dt>
+                <dd className="mt-0.5 whitespace-pre-wrap text-foreground/90">
+                  {f.values.join(", ")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -1077,12 +1233,16 @@ function DraftTab({
   generatedDraft,
   onGenerate,
   generating,
+  parentSub,
+  teacherSub,
 }: {
   ev: Evaluation;
   setTab: (t: Tab) => void;
   generatedDraft: DraftSections | null;
   onGenerate: () => void;
   generating: boolean;
+  parentSub: Submission | null;
+  teacherSub: Submission | null;
 }) {
   const ready = isReadyForDraft(ev);
   const missing = getChecklist(ev).filter((c) => c.required && !c.complete);
@@ -1136,8 +1296,39 @@ function DraftTab({
     );
   }
 
-  const d: DraftSections = generatedDraft ?? buildDraft(ev);
   const hasDraftContent = Boolean(generatedDraft || ev.draft);
+
+  if (!hasDraftContent) {
+    return (
+      <Card title="AI Draft">
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 p-5 text-center">
+          <Sparkles className="mx-auto h-6 w-6 text-emerald-700" />
+          <div className="mt-2 text-sm font-medium text-emerald-900">
+            Ready to generate
+          </div>
+          <p className="mx-auto mt-1 max-w-md text-sm text-emerald-900/80">
+            All required information is complete. Generate an editable draft when
+            you're ready. Novi assists — the SLP reviews and edits every section.
+          </p>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={generating}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}{" "}
+            {generating ? "Generating…" : "Generate draft"}
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
+  const d: DraftSections = generatedDraft ?? buildDraft(ev, parentSub, teacherSub);
 
   const sections: { key: keyof DraftSections; label: string; rows?: number }[] = [
     { key: "background", label: "Background" },
@@ -1171,21 +1362,6 @@ function DraftTab({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {!hasDraftContent ? (
-          <button
-            type="button"
-            onClick={onGenerate}
-            disabled={generating}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}{" "}
-            {generating ? "Generating…" : "Generate draft"}
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={() => toast.success("Draft saved (demo).")}
